@@ -13,20 +13,18 @@ from dotenv import load_dotenv
 from openai import OpenAI
 
 from constants import REGIONS
-from recommender import rank_olympiads, build_calendar
+try:
+    from recommender import rank_olympiads, build_calendar
+except Exception:
+    from backend.recommender import rank_olympiads, build_calendar
 
-# ──────────────── PATH CONFIG ────────────────
+# Централизованный модуль данных
+try:
+    import olympiad_data
+except Exception:
+    # allow importing as package: `from backend import olympiad_data`
+    from backend import olympiad_data
 
-BASE_DIR = Path(__file__).resolve().parent
-DATA_PATH = BASE_DIR / "data" / "normalized.json"
-
-def load_olympiads():
-    if not DATA_PATH.exists():
-        return []
-    with open(DATA_PATH, encoding="utf-8") as f:
-        return json.load(f)
-
-OLYMPIADS = load_olympiads()
 
 # ──────────────── ENV ────────────────
 
@@ -75,7 +73,7 @@ class JustificationRequest(BaseModel):
 
 @app.get("/api/meta")
 def get_meta():
-    subjects = sorted({s for o in OLYMPIADS for s in o.get("subjects", [])})
+    subjects = sorted({s for o in olympiad_data.OLYMPIADS for s in o.get("subjects", [])})
     return {
         "subjects": subjects,
         "regions": REGIONS,
@@ -86,7 +84,7 @@ def get_meta():
 
 @app.get("/api/olympiads")
 def get_all_olympiads():
-    return {"olympiads": OLYMPIADS, "total": len(OLYMPIADS)}
+    return {"olympiads": olympiad_data.OLYMPIADS, "total": len(olympiad_data.OLYMPIADS)}
 
 
 @app.post("/api/recommend")
@@ -105,7 +103,7 @@ def recommend(profile: StudentProfile):
 
 @app.post("/api/justify")
 def justify(req: JustificationRequest):
-    olympiad = next((o for o in OLYMPIADS if o["id"] == req.olympiad_id), None)
+    olympiad = next((o for o in olympiad_data.OLYMPIADS if o["id"] == req.olympiad_id), None)
 
     if not olympiad:
         raise HTTPException(status_code=404, detail="Олимпиада не найдена")
@@ -176,3 +174,13 @@ def _generate_fallback_justification(olympiad: dict, profile: StudentProfile) ->
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+@app.post("/api/reload-data")
+def api_reload_data():
+    """Перезагрузить `backend/data/normalized.json` в память приложения."""
+    try:
+        count = olympiad_data.reload()
+        return {"status": "ok", "count": count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

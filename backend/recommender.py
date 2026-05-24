@@ -1,8 +1,10 @@
-"""
-Рекомендательная система олимпиад.
+"""Рекомендательная система олимпиад.
 Реализует content-based filtering на тегах.
 """
-from olympiad_data import OLYMPIADS, SUBJECT_TAGS, PREPARATION_LEVELS
+try:
+    import olympiad_data
+except Exception:
+    from backend import olympiad_data
 from typing import List, Dict, Any
 import math
 
@@ -18,15 +20,36 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
     student_subjects = set(profile.get("subjects", []))
     olympiad_subjects = set(olympiad.get("subjects", []))
     subject_overlap = len(student_subjects & olympiad_subjects)
-    if subject_overlap == 0:
-        return 0.0  # Не подходит совсем
+    # Если у олимпиады не указаны предметы — попробуем их вывести из названия/описания
+    if not olympiad_subjects:
+        name = (olympiad.get("name") or "").lower()
+        desc = (olympiad.get("description") or "").lower()
+        SUBJECT_KEYWORDS = {
+            "матем": "математика",
+            "физ": "физика",
+            "информ": "информатика",
+            "программ": "информатика",
+            "хим": "химия",
+            "биол": "биология",
+            "истор": "история",
+            "литер": "литература",
+            "англ": "английский язык",
+            "эконом": "экономика",
+            "географ": "география",
+            "лингв": "лингвистика",
+        }
+        for k, subj in SUBJECT_KEYWORDS.items():
+            if k in name or k in desc:
+                olympiad_subjects.add(subj)
+
+    subject_overlap = len(student_subjects & olympiad_subjects)
     subject_score = subject_overlap / max(len(student_subjects), 1)
     score += subject_score * 0.5
 
     # 2. Совпадение тегов (вес 0.2)
     tag_score = 0.0
     for subject in student_subjects:
-        subject_tags = set(SUBJECT_TAGS.get(subject, []))
+        subject_tags = set(olympiad_data.SUBJECT_TAGS.get(subject, []))
         olympiad_tags = set(olympiad.get("tags", []))
         if subject_tags and olympiad_tags:
             overlap = len(subject_tags & olympiad_tags)
@@ -36,11 +59,14 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
 
     # 3. Подходящий класс (фильтр)
     grade = profile.get("grade", 9)
-    if grade not in olympiad.get("grades", []):
+    grades = olympiad.get("grades", [])
+    # Если в данных явно указаны подходящие классы — фильтруем.
+    # Если список пустой/не указан, считаем, что олимпиада доступна для всех классов.
+    if grades and grade not in grades:
         return 0.0
 
     # 4. Уровень подготовки vs. сложность (вес 0.15)
-    prep_level = PREPARATION_LEVELS.get(profile.get("preparation_level", "средний"), 0.6)
+    prep_level = olympiad_data.PREPARATION_LEVELS.get(profile.get("preparation_level", "средний"), 0.6)
     difficulty_map = {"низкий": 0.3, "средний": 0.6, "высокий": 1.0}
     olympiad_difficulty = difficulty_map.get(olympiad.get("difficulty", "средний"), 0.6)
 
@@ -70,7 +96,7 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
 def rank_olympiads(profile: Dict, top_n: int = 10) -> List[Dict]:
     """Ранжирует олимпиады по профилю школьника."""
     scored = []
-    for olympiad in OLYMPIADS:
+    for olympiad in olympiad_data.OLYMPIADS:
         score = compute_content_score(olympiad, profile)
         if score > 0:
             scored.append({

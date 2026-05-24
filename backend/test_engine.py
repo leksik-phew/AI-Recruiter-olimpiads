@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
-from olympiad_data import OLYMPIADS
-from recommender import rank_olympiads, build_calendar
+try:
+    import olympiad_data
+except Exception:
+    from backend import olympiad_data
+try:
+    from recommender import rank_olympiads, build_calendar
+except Exception:
+    from backend.recommender import rank_olympiads, build_calendar
 
 profile = {
     'name': 'Алексей',

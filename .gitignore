@@ -28,3 +28,11 @@ dist-ssr
 
 # Claude
 .claude/
+ 
+# Python cache and runtime files
+__pycache__/
+*.pyc
+
+# Local data caches created by parsers
+backend/data/detail_cache.json
+backend/data/raw_with_details.json
