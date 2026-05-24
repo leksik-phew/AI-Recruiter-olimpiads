@@ -1,17 +1,30 @@
-# Запуск AI-Рекрутера олимпиад
-Write-Host "🚀 Запускаем AI-Рекрутер олимпиад..." -ForegroundColor Cyan
+# Start AI-olimpiad-recruiter
+$root     = $PSScriptRoot
+$backend  = "$root\backend"
+$frontend = "$root\frontend"
 
-# Бэкенд
-Write-Host "`n📦 Запуск бэкенда (FastAPI)..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$PSScriptRoot\backend'; pip install -r requirements.txt -q; python main.py"
+Write-Host "Starting AI-Recruiter..." -ForegroundColor Cyan
+
+# Backend in a new PowerShell window
+Write-Host "Starting backend (FastAPI)..." -ForegroundColor Yellow
+Start-Process powershell -ArgumentList @(
+    "-NoExit",
+    "-Command",
+    "Set-Location '$backend'; python main.py"
+)
 
 Start-Sleep -Seconds 3
 
-# Фронтенд
-Write-Host "⚛️  Запуск фронтенда (Vite)..." -ForegroundColor Green
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$PSScriptRoot\frontend'; npm run dev"
+# Frontend in a new PowerShell window
+Write-Host "Starting frontend (Vite)..." -ForegroundColor Green
+Start-Process powershell -ArgumentList @(
+    "-NoExit",
+    "-Command",
+    "Set-Location '$frontend'; npm run dev"
+)
 
-Write-Host "`n✅ Сервисы запускаются:" -ForegroundColor Green
-Write-Host "   🌐 Фронтенд: http://localhost:5173" -ForegroundColor White
-Write-Host "   🔧 API:      http://localhost:8000" -ForegroundColor White
-Write-Host "   📖 Docs:     http://localhost:8000/docs" -ForegroundColor White
+Write-Host ""
+Write-Host "Services starting:" -ForegroundColor Green
+Write-Host "  Frontend : http://localhost:5173" -ForegroundColor White
+Write-Host "  API      : http://localhost:8000" -ForegroundColor White
+Write-Host "  API Docs : http://localhost:8000/docs" -ForegroundColor White
