@@ -1,7 +1,10 @@
 """
 FastAPI backend для AI-рекрутера олимпиад.
 """
+
 import os
+import json
+from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -9,10 +12,37 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from openai import OpenAI
 
-from olympiad_data import OLYMPIADS, REGIONS
+from constants import REGIONS
 from recommender import rank_olympiads, build_calendar
 
+# ──────────────── PATH CONFIG ────────────────
+
+BASE_DIR = Path(__file__).resolve().parent
+DATA_PATH = BASE_DIR / "data" / "normalized.json"
+
+def load_olympiads():
+    if not DATA_PATH.exists():
+        return []
+    with open(DATA_PATH, encoding="utf-8") as f:
+        return json.load(f)
+
+OLYMPIADS = load_olympiads()
+
+# ──────────────── ENV ────────────────
+
 load_dotenv()
+
+_api_key = os.getenv("OPENROUTER_API_KEY", "")
+USE_AI = bool(_api_key)
+
+ai_client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=_api_key or "no-key",
+)
+
+OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+
+# ──────────────── APP ────────────────
 
 app = FastAPI(title="AI-Рекрутер олимпиад", version="1.0.0")
 
@@ -24,24 +54,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# OpenRouter client (OpenAI-compatible)
-_api_key = os.getenv("OPENROUTER_API_KEY", "")
-USE_AI = bool(_api_key)
-ai_client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key=_api_key or "no-key",
-)
-OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
-
+# ──────────────── MODELS ────────────────
 
 class StudentProfile(BaseModel):
     name: str
-    grade: int  # Класс 5-11
-    subjects: List[str]  # Предметы
+    grade: int
+    subjects: List[str]
     region: str
-    preparation_level: str  # начальный / средний / продвинутый
+    preparation_level: str
     prefer_online: bool = False
-    goals: Optional[str] = ""  # Цели: поступление в вуз, самореализация и т.д.
+    goals: Optional[str] = ""
 
 
 class JustificationRequest(BaseModel):
@@ -53,8 +75,7 @@ class JustificationRequest(BaseModel):
 
 @app.get("/api/meta")
 def get_meta():
-    """Возвращает справочные данные для форм."""
-    subjects = sorted({s for o in OLYMPIADS for s in o["subjects"]})
+    subjects = sorted({s for o in OLYMPIADS for s in o.get("subjects", [])})
     return {
         "subjects": subjects,
         "regions": REGIONS,
@@ -65,13 +86,11 @@ def get_meta():
 
 @app.get("/api/olympiads")
 def get_all_olympiads():
-    """Возвращает все олимпиады."""
     return {"olympiads": OLYMPIADS, "total": len(OLYMPIADS)}
 
 
 @app.post("/api/recommend")
 def recommend(profile: StudentProfile):
-    """Возвращает топ рекомендаций по профилю."""
     profile_dict = profile.model_dump()
     ranked = rank_olympiads(profile_dict, top_n=12)
     calendar = build_calendar(ranked)
@@ -86,9 +105,8 @@ def recommend(profile: StudentProfile):
 
 @app.post("/api/justify")
 def justify(req: JustificationRequest):
-    """Генерирует AI-обоснование выбора олимпиады для данного школьника."""
-    # Найдём олимпиаду
     olympiad = next((o for o in OLYMPIADS if o["id"] == req.olympiad_id), None)
+
     if not olympiad:
         raise HTTPException(status_code=404, detail="Олимпиада не найдена")
 
@@ -102,8 +120,9 @@ def justify(req: JustificationRequest):
     return {"justification": justification, "olympiad_id": req.olympiad_id}
 
 
+# ──────────────── AI LOGIC ────────────────
+
 def _generate_ai_justification(olympiad: dict, profile: StudentProfile) -> str:
-    """Генерирует обоснование через OpenRouter (nvidia/nemotron-3-super-120b)."""
     prompt = f"""Ты — персональный образовательный советник для школьников России.
 
 Профиль школьника:
@@ -114,18 +133,19 @@ def _generate_ai_justification(olympiad: dict, profile: StudentProfile) -> str:
 - Уровень подготовки: {profile.preparation_level}
 - Цели: {profile.goals or 'не указаны'}
 
-Олимпиада / конкурс:
-- Название: {olympiad['name']}
-- Организатор: {olympiad['organizer']}
-- Уровень: {olympiad['level']} (1 — высший)
-- Сложность: {olympiad['difficulty']}
-- Тип: {olympiad['type']}
-- Предметы: {', '.join(olympiad['subjects'])}
-- Онлайн: {'да' if olympiad['online'] else 'нет/частично'}
-- Награды: {olympiad['prize']}
-- Описание: {olympiad['description']}
+Олимпиада:
+- Название: {olympiad.get('name')}
+- Организатор: {olympiad.get('organizer')}
+- Уровень: {olympiad.get('level')}
+- Сложность: {olympiad.get('difficulty')}
+- Тип: {olympiad.get('type')}
+- Предметы: {', '.join(olympiad.get('subjects', []))}
+- Онлайн: {'да' if olympiad.get('online') else 'нет/частично'}
+- Награды: {olympiad.get('prize')}
+- Описание: {olympiad.get('description')}
 
-Напиши короткое (3-4 предложения) персонализированное обоснование: почему именно эта олимпиада подходит данному школьнику, какие конкретные преимущества она даёт, на что обратить внимание при подготовке. Пиши дружелюбно, конкретно, без воды. Обращайся к школьнику по имени."""
+Напиши короткое (3-4 предложения) персонализированное обоснование.
+"""
 
     try:
         response = ai_client.chat.completions.create(
@@ -139,30 +159,19 @@ def _generate_ai_justification(olympiad: dict, profile: StudentProfile) -> str:
 
 
 def _generate_fallback_justification(olympiad: dict, profile: StudentProfile) -> str:
-    """Генерирует обоснование без API (fallback)."""
     name = profile.name
     subjects = ", ".join(profile.subjects)
-    olympiad_name = olympiad["name"]
-    prize = olympiad["prize"]
-    difficulty = olympiad["difficulty"]
-    prep = profile.preparation_level
-
-    level_comment = {
-        ("продвинутый", "высокий"): f"Твой продвинутый уровень подготовки — именно то, что нужно для этой олимпиады.",
-        ("средний", "средний"): f"Твой уровень подготовки хорошо соответствует сложности этой олимпиады.",
-        ("начальный", "средний"): f"Это отличный следующий шаг в твоём развитии — не слишком просто, но вполне реально.",
-        ("начальный", "низкий"): f"Это отличный старт — задания доступны для твоего уровня.",
-    }.get((prep, difficulty), f"Эта олимпиада хорошо соответствует твоему профилю.")
-
-    online_note = " Можно участвовать онлайн — удобно из любого региона." if olympiad.get("online") else ""
+    olympiad_name = olympiad.get("name", "эта олимпиада")
+    prize = olympiad.get("prize", "дипломы и преимущества при поступлении")
 
     return (
-        f"{name}, олимпиада «{olympiad_name}» — отличный выбор для школьника с интересом к {subjects}. "
-        f"{level_comment}"
-        f"{online_note} "
-        f"Победители получают: {prize}, что даёт реальные преимущества при поступлении в ведущие вузы страны."
+        f"{name}, олимпиада «{olympiad_name}» отлично подойдёт тебе, "
+        f"если тебе интересны предметы: {subjects}. "
+        f"Победители получают: {prize}."
     )
 
+
+# ──────────────── RUN ────────────────
 
 if __name__ == "__main__":
     import uvicorn
