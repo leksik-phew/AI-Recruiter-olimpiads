@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Invoke-RestMethod -Uri \"http://localhost:8000/api/meta\" -Method GET 2>&1)",
+      "PowerShell(Set-Location \"c:\\\\Users\\\\leksb\\\\Documents\\\\kodikterpils\\\\frontend\"; $npmPath = \\(Get-Command npm\\).Source; Start-Process $npmPath -ArgumentList \"run dev\" -PassThru | Select-Object Id; Start-Sleep -Seconds 4; Write-Host \"Frontend started\")",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:5173\" -UseBasicParsing -TimeoutSec 5 2>&1)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(curl -sv http://localhost:5173)",
+      "Bash(curl -s http://127.0.0.1:5173/)",
+      "Read(//mnt/c/Users/leksb/Documents/kodikterpils/**)",
+      "Bash(python main.py)",
+      "Bash(curl -s http://localhost:8000/api/meta)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\('Subjects:', d['subjects'][:3], '...'\\); print\\('Regions:', d['regions'][:3], '...'\\)\")"
+    ]
+  }
+}
