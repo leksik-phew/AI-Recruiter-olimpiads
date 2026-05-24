@@ -2,13 +2,12 @@
 FastAPI backend для AI-рекрутера олимпиад.
 """
 import os
-import json
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 from dotenv import load_dotenv
-import anthropic
+from openai import OpenAI
 
 from olympiad_data import OLYMPIADS, REGIONS
 from recommender import rank_olympiads, build_calendar
@@ -25,12 +24,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Anthropic client
-try:
-    ai_client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY", ""))
-    USE_AI = bool(os.getenv("ANTHROPIC_API_KEY"))
-except Exception:
-    USE_AI = False
+# OpenRouter client (OpenAI-compatible)
+_api_key = os.getenv("OPENROUTER_API_KEY", "")
+USE_AI = bool(_api_key)
+ai_client = OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=_api_key or "no-key",
+)
+OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
 
 
 class StudentProfile(BaseModel):
@@ -102,7 +103,7 @@ def justify(req: JustificationRequest):
 
 
 def _generate_ai_justification(olympiad: dict, profile: StudentProfile) -> str:
-    """Генерирует обоснование через Claude API."""
+    """Генерирует обоснование через OpenRouter (nvidia/nemotron-3-super-120b)."""
     prompt = f"""Ты — персональный образовательный советник для школьников России.
 
 Профиль школьника:
@@ -127,13 +128,13 @@ def _generate_ai_justification(olympiad: dict, profile: StudentProfile) -> str:
 Напиши короткое (3-4 предложения) персонализированное обоснование: почему именно эта олимпиада подходит данному школьнику, какие конкретные преимущества она даёт, на что обратить внимание при подготовке. Пиши дружелюбно, конкретно, без воды. Обращайся к школьнику по имени."""
 
     try:
-        message = ai_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+        response = ai_client.chat.completions.create(
+            model=OPENROUTER_MODEL,
             max_tokens=400,
             messages=[{"role": "user", "content": prompt}],
         )
-        return message.content[0].text
-    except Exception as e:
+        return response.choices[0].message.content or _generate_fallback_justification(olympiad, profile)
+    except Exception:
         return _generate_fallback_justification(olympiad, profile)
 
 
