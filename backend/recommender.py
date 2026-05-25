@@ -10,7 +10,8 @@ try:
 except Exception:
     from backend import olympiad_data
 
-from typing import List, Dict, Any, Tuple
+from datetime import date
+from typing import List, Dict, Any, Tuple, Optional
 
 # ──────────────────────────────────────────────────────────────
 # Цель → тип олимпиады (автофильтр)
@@ -328,8 +329,15 @@ def generate_match_reasons(olympiad: Dict, profile: Dict, score: float) -> List[
     return reasons
 
 
-def build_calendar(ranked_olympiads: List[Dict], academic_year_start: int = 2025) -> List[Dict]:
+def _get_current_academic_year_start(today: Optional[date] = None) -> int:
+    """Return the season start year used for upcoming olympiad deadlines."""
+    today = today or date.today()
+    return today.year if today.month >= 5 else today.year - 1
+
+
+def build_calendar(ranked_olympiads: List[Dict], academic_year_start: Optional[int] = None) -> List[Dict]:
     """Строит календарь этапов с диапазонами дат на учебный год."""
+    academic_year_start = academic_year_start or _get_current_academic_year_start()
     events = []
 
     for olympiad in ranked_olympiads:
