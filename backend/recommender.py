@@ -49,10 +49,15 @@ SUBJECT_KEYWORDS: Dict[str, str] = {
     "правов":    "право",
     "русск":     "русский язык",
     "астроном":  "астрономия",
+    "космонав":  "астрономия",
     "эколог":    "экология",
     "немецк":    "немецкий язык",
     "французск": "французский язык",
     "филолог":   "литература",
+    "химич":     "химия",
+    "биохим":    "химия",
+    "правоед":   "право",
+    "правов":    "право",
 }
 
 
@@ -68,6 +73,24 @@ def _get_olympiad_effective_subjects(olympiad: Dict) -> set:
             if kw in text:
                 subjects.add(subj)
     return subjects
+
+
+def _get_primary_subjects(olympiad: Dict) -> set:
+    """
+    Возвращает «главные» предметы олимпиады — те, что явно упомянуты в её названии.
+    Если из названия ничего не извлечь, возвращает пустое множество.
+    Используется для различия «Олимпиада по физике» (главный предмет — физика)
+    и «Олимпиада по лингвистике» (у которой физика лишь второстепенный раздел).
+    """
+    text = (
+        (olympiad.get("name") or "") + " " +
+        (olympiad.get("short_name") or "")
+    ).lower()
+    primary = set()
+    for kw, subj in SUBJECT_KEYWORDS.items():
+        if kw in text:
+            primary.add(subj)
+    return primary
 
 
 def _build_auto_filters(profile: Dict) -> Dict:
@@ -114,8 +137,40 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
     olympiad_subjects = _get_olympiad_effective_subjects(olympiad)
 
     # 1. Совпадение предметов (вес 0.55)
-    subject_overlap = len(student_subjects & olympiad_subjects)
-    subject_score = subject_overlap / max(len(student_subjects), 1)
+    #
+    # Стратегия двухуровневого матчинга:
+    #
+    # • Если название олимпиады раскрывает её основной предмет (содержит ключевые слова) —
+    #   используем «первичное/вторичное» разделение:
+    #     subject_score = primary_recall + secondary_overlap * 0.30
+    #   Пример: «Олимпиада по физике» (primary=физика) при student=[физика,матем]
+    #     → primary_recall = 1/2 = 0.5, secondary = 1*0.30/2 = 0.15 → total 0.65
+    #
+    # • Если название не несёт предметной информации (engineering/technology/general) —
+    #   используем F1 (harmonic mean recall×precision), чтобы широкие олимпиады
+    #   с 4–5 предметами не получали искусственно высокий балл:
+    #     F1 = 2·recall·precision / (recall+precision)
+    #   Пример: «Инженерная олимпиада» (4 субj, 2 совпадают) → precision=0.5
+    #     F1 = 2·1.0·0.5/1.5 = 0.67 < 1.0 ✓
+    primary_subjects = _get_primary_subjects(olympiad)
+
+    if primary_subjects:
+        overlap_primary   = len(student_subjects & primary_subjects)
+        overlap_secondary = len((student_subjects & olympiad_subjects) - primary_subjects)
+        if student_subjects:
+            primary_recall  = overlap_primary / len(student_subjects)
+            secondary_score = (overlap_secondary * 0.30) / len(student_subjects)
+            subject_score   = min(primary_recall + secondary_score, 1.0)
+        else:
+            subject_score = 0.5
+    else:
+        # Название не раскрывает предмет → F1 по всем subjects
+        n_overlap  = len(student_subjects & olympiad_subjects)
+        recall     = n_overlap / max(len(student_subjects), 1)
+        precision  = n_overlap / max(len(olympiad_subjects), 1)
+        denom      = recall + precision
+        subject_score = (2 * recall * precision / denom) if denom > 0 else 0.0
+
     score += subject_score * 0.55
 
     # 2. Совпадение тегов (вес 0.15)
@@ -197,10 +252,21 @@ def rank_olympiads(profile: Dict, top_n: int = None) -> Tuple[List[Dict], Dict]:
         if grades and grade not in grades:
             continue
 
-        # ── Жёсткий фильтр: предметы (хотя бы одно совпадение) ───
+        # ── Жёсткий фильтр: предметы ─────────────────────────────
         if student_subjects:
             olympiad_subjects = _get_olympiad_effective_subjects(olympiad)
-            if not (student_subjects & olympiad_subjects):
+            overlap = student_subjects & olympiad_subjects
+            if not overlap:
+                continue
+
+            # Отсеиваем «случайные» совпадения: если совпадающие предметы занимают
+            # менее 20% всех предметов олимпиады И название не подтверждает тематику.
+            # Это убирает, например, языковые олимпиады с математикой как доп. треком
+            # из подборки студента, выбравшего только математику.
+            primary = _get_primary_subjects(olympiad)
+            primary_overlap = student_subjects & primary
+            overlap_fraction = len(overlap) / max(len(olympiad_subjects), 1)
+            if not primary_overlap and overlap_fraction <= 0.20:
                 continue
 
         # ── Подсчёт очков ─────────────────────────────────────────
