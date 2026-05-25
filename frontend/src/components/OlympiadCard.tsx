@@ -15,6 +15,7 @@ interface Props {
   olympiad: Olympiad;
   profile: StudentProfile;
   rank: number;
+  recLabel?: { label: string; className: string };
 }
 
 const MONTHS = ['', 'янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
@@ -75,7 +76,7 @@ function getLevelLabel(level: number | null | undefined) {
   return 'Другой формат';
 }
 
-export default function OlympiadCard({ olympiad, profile, rank }: Props) {
+export default function OlympiadCard({ olympiad, profile, rank, recLabel }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [justification, setJustification] = useState<string | null>(null);
   const [loadingJustification, setLoadingJustification] = useState(false);
@@ -150,6 +151,9 @@ export default function OlympiadCard({ olympiad, profile, rank }: Props) {
         </div>
 
         <div className="match-badge">
+          {recLabel && (
+            <span className={`rec-label ${recLabel.className}`}>{recLabel.label}</span>
+          )}
           <span>совпадение</span>
           <strong>{score}%</strong>
         </div>
@@ -174,6 +178,11 @@ export default function OlympiadCard({ olympiad, profile, rank }: Props) {
             <div key={`${stage.name}-${index}`} className="stage-pill">
               <strong>
                 {stage.day} {MONTHS[stage.month]}
+                {stage.end_month && stage.end_day && (
+                  <span className="stage-pill__range">
+                    {' '}→ {stage.end_day} {MONTHS[stage.end_month]}
+                  </span>
+                )}
               </strong>
               <span>{stage.name}</span>
             </div>

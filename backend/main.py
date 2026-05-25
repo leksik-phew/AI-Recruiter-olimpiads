@@ -38,7 +38,7 @@ ai_client = OpenAI(
     api_key=_api_key or "no-key",
 )
 
-OPENROUTER_MODEL = "nvidia/nemotron-3-super-120b-a12b:free"
+OPENROUTER_MODEL = "deepseek/deepseek-r1-0528:free"
 
 # ──────────────── APP ────────────────
 
@@ -93,17 +93,19 @@ def get_all_olympiads():
 
 @app.post("/api/recommend")
 def recommend(profile: StudentProfile):
-    """Персональные рекомендации — все подходящие олимпиады из normalized.json,
-    отсортированные по релевантности профилю."""
+    """Персональные рекомендации — только подходящие олимпиады из normalized.json,
+    отсортированные по релевантности профилю. Фильтрация происходит автоматически
+    по профилю (класс, предметы, цель, онлайн)."""
     profile_dict = profile.model_dump()
-    ranked = rank_olympiads(profile_dict, top_n=len(olympiad_data.OLYMPIADS))
+    ranked, applied_filters = rank_olympiads(profile_dict)
     calendar = build_calendar(ranked)
 
     return {
-        "profile":         profile_dict,
-        "recommendations": ranked,
-        "calendar":        calendar,
-        "total_found":     len(ranked),
+        "profile":          profile_dict,
+        "recommendations":  ranked,
+        "calendar":         calendar,
+        "total_found":      len(ranked),
+        "applied_filters":  applied_filters,
     }
 
 

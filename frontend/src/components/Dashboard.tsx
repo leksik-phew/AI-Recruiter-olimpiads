@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react';
 import {
   BarChart3,
+  BookOpen,
   CalendarDays,
   Download,
+  GraduationCap,
   RefreshCcw,
   Sparkles,
   Star,
+  Target,
   Trophy,
+  Wifi,
 } from 'lucide-react';
-import type { RecommendResponse } from '../types';
+import type { AppliedFilters, RecommendResponse } from '../types';
 import CalendarView from './CalendarView';
 import OlympiadCard from './OlympiadCard';
 
@@ -32,86 +36,86 @@ const SUBJECT_MARKS: Record<string, string> = {
   география: 'GEO',
   'английский язык': 'ENG',
   'русский язык': 'RU',
+  астрономия: 'AST',
+  экология: 'ECO',
+  лингвистика: 'LING',
+  право: 'LAW',
+  'немецкий язык': 'DE',
+  'французский язык': 'FR',
 };
 
 function getSubjectMark(subject: string) {
   return SUBJECT_MARKS[subject.toLowerCase()] ?? subject.slice(0, 2).toUpperCase();
 }
 
-function getTypeLabel(type: string) {
-  const normalized = type.toLowerCase();
-
-  if (normalized.includes('олим')) {
-    return 'Олимпиады';
-  }
-
-  if (normalized.includes('конкур')) {
-    return 'Конкурсы';
-  }
-
-  if (normalized.includes('конфер')) {
-    return 'Конференции';
-  }
-
-  return type;
-}
-
 function escapeCsvCell(value: string | number | boolean | null | undefined): string {
   const str = value == null ? '' : String(value);
-  // Если содержит запятую, кавычки или переносы — оборачиваем в кавычки
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {
     return `"${str.replace(/"/g, '""')}"`;
   }
   return str;
 }
 
+// ────────────────────────────────────────────
+// Рекомендательные метки на основе профиля
+// ────────────────────────────────────────────
+function getRecommendLabel(score: number): { label: string; className: string } {
+  if (score >= 0.8) return { label: '⭐ Точное совпадение', className: 'rec-label--perfect' };
+  if (score >= 0.6) return { label: '✓ Хорошо подходит', className: 'rec-label--good' };
+  if (score >= 0.4) return { label: 'Частичное совпадение', className: 'rec-label--partial' };
+  return { label: 'Общий интерес', className: 'rec-label--neutral' };
+}
+
+// ────────────────────────────────────────────
+// Иконки для авто-фильтр бейджей
+// ────────────────────────────────────────────
+function FilterBadgeIcon({ icon }: { icon: string }) {
+  if (icon === 'grade') return <GraduationCap size={13} />;
+  if (icon === 'subjects') return <BookOpen size={13} />;
+  if (icon === 'goal') return <Target size={13} />;
+  if (icon === 'online') return <Wifi size={13} />;
+  return null;
+}
+
+function AutoFilterBadges({ filters }: { filters: AppliedFilters }) {
+  return (
+    <div className="auto-filter-bar">
+      <span className="auto-filter-bar__label">Автофильтр:</span>
+      <div className="auto-filter-badges">
+        {filters.badges.map((badge, i) => (
+          <span
+            key={i}
+            className={`auto-filter-badge auto-filter-badge--${badge.icon}`}
+            title={badge.reason}
+          >
+            <FilterBadgeIcon icon={badge.icon} />
+            {badge.label}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard({ data, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('recommendations');
-  const [filter, setFilter] = useState('all');
 
-  const { profile, recommendations, calendar } = data;
+  const { profile, recommendations, calendar, applied_filters, total_found } = data;
 
-  const typeFilters = useMemo(
-    () => ['all', ...Array.from(new Set(recommendations.map((item) => item.type)))],
+  // ── Статистика шапки ─────────────────────────────────────────
+  const highLevelCount = useMemo(() => recommendations.filter((r) => r.level === 1).length, [recommendations]);
+  const onlineCount = useMemo(() => recommendations.filter((r) => r.online).length, [recommendations]);
+  const topMatch = useMemo(
+    () => (recommendations.length > 0 ? Math.round((recommendations[0].recommendation_score ?? 0) * 100) : 0),
     [recommendations],
   );
 
-  const filteredRecommendations =
-    filter === 'all'
-      ? recommendations
-      : recommendations.filter((item) => item.type === filter);
-
-  const highLevelCount = recommendations.filter((item) => item.level === 1).length;
-  const onlineCount = recommendations.filter((item) => item.online).length;
-  const averageMatch =
-    recommendations.length > 0
-      ? Math.round(
-          (recommendations.reduce(
-            (sum, item) => sum + (item.recommendation_score ?? 0),
-            0,
-          ) /
-            recommendations.length) *
-            100,
-        )
-      : 0;
-
+  // ── Экспорт ──────────────────────────────────────────────────
   const downloadCSV = () => {
     const headers = [
-      '№',
-      'Название',
-      'Организатор',
-      'Тип',
-      'Уровень',
-      'Сложность',
-      'Предметы',
-      'Классы',
-      'Онлайн',
-      'Совпадение%',
-      'Этапов',
-      'Призы',
-      'Сайт',
+      '№', 'Название', 'Организатор', 'Тип', 'Уровень', 'Сложность',
+      'Предметы', 'Классы', 'Онлайн', 'Совпадение%', 'Этапов', 'Призы', 'Сайт',
     ];
-
     const rows = recommendations.map((o, i) => [
       i + 1,
       escapeCsvCell(o.name),
@@ -127,14 +131,7 @@ export default function Dashboard({ data, onReset }: Props) {
       escapeCsvCell(o.prize ?? ''),
       escapeCsvCell(o.url),
     ]);
-
-    const csvLines = [
-      headers.join(','),
-      ...rows.map((row) => row.join(',')),
-    ];
-
-    // BOM для корректного отображения кириллицы в Excel
-    const csv = '﻿' + csvLines.join('\r\n');
+    const csv = '﻿' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -151,26 +148,14 @@ export default function Dashboard({ data, onReset }: Props) {
       profile,
       exported_at: new Date().toISOString(),
       recommendations: recommendations.map((o) => ({
-        id: o.id,
-        name: o.name,
-        organizer: o.organizer,
-        type: o.type,
-        level: o.level,
-        difficulty: o.difficulty,
-        subjects: o.subjects,
-        grades: o.grades,
-        online: o.online,
-        recommendation_score: o.recommendation_score,
-        match_reasons: o.match_reasons,
-        url: o.url,
-        stages: o.stages,
-        prize: o.prize,
-        description: o.description,
+        id: o.id, name: o.name, organizer: o.organizer, type: o.type,
+        level: o.level, difficulty: o.difficulty, subjects: o.subjects,
+        grades: o.grades, online: o.online, recommendation_score: o.recommendation_score,
+        match_reasons: o.match_reasons, url: o.url, stages: o.stages,
+        prize: o.prize, description: o.description,
       })),
     };
-
-    const json = JSON.stringify(payload, null, 2);
-    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -189,13 +174,12 @@ export default function Dashboard({ data, onReset }: Props) {
 
   return (
     <main className="app-shell">
+      {/* ── Шапка дашборда ───────────────────────────────────── */}
       <section className="dashboard-hero">
         <div className="dashboard-hero__topline">
           <div className="entry-hero__eyebrow">
-            <span className="entry-hero__stamp">Olymp Dossier</span>
             <span className="entry-hero__season">личный кабинет ученика</span>
           </div>
-
           <button type="button" className="button-secondary" onClick={onReset}>
             <RefreshCcw size={16} />
             Изменить профиль
@@ -208,7 +192,7 @@ export default function Dashboard({ data, onReset }: Props) {
             <h1>{profile.name}, вот кабинет под твой олимпиадный ритм</h1>
             <p>
               Мы собрали рекомендации и календарь так, чтобы они выглядели как продуманная
-              траектория, а не случайный каталог мероприятий.
+              траектория.
             </p>
           </div>
 
@@ -222,7 +206,7 @@ export default function Dashboard({ data, onReset }: Props) {
             </div>
             <div className="profile-ribbon__subjects">
               {profile.subjects.map((subject) => (
-                <span key={subject}>{getSubjectMark(subject)}</span>
+                <span key={subject} title={subject}>{getSubjectMark(subject)}</span>
               ))}
             </div>
           </aside>
@@ -230,9 +214,9 @@ export default function Dashboard({ data, onReset }: Props) {
 
         <div className="stat-row">
           <article className="stat-card">
-            <span>Сильные олимпиады</span>
+            <span>I уровень РСОШ</span>
             <strong>{highLevelCount}</strong>
-            <small>уровень РСОШ I</small>
+            <small>топ-олимпиады</small>
           </article>
           <article className="stat-card">
             <span>Онлайн-этапы</span>
@@ -240,13 +224,14 @@ export default function Dashboard({ data, onReset }: Props) {
             <small>удобны под регион</small>
           </article>
           <article className="stat-card stat-card--accent">
-            <span>Совпадение профиля</span>
-            <strong>{averageMatch}%</strong>
-            <small>средний матч рекомендаций</small>
+            <span>Лучшее совпадение</span>
+            <strong>{topMatch}%</strong>
+            <small>топ-результат подборки</small>
           </article>
         </div>
       </section>
 
+      {/* ── Вкладки и контент ────────────────────────────────── */}
       <section className="dashboard-panel">
         <div className="tabbar">
           {tabs.map(({ id, label, count, icon: Icon }) => (
@@ -263,6 +248,7 @@ export default function Dashboard({ data, onReset }: Props) {
           ))}
         </div>
 
+        {/* ── РЕКОМЕНДАЦИИ ─────────────────────────────────── */}
         {tab === 'recommendations' && (
           <section className="panel-section">
             <div className="panel-section__head">
@@ -275,7 +261,7 @@ export default function Dashboard({ data, onReset }: Props) {
                   type="button"
                   className="button-secondary button-secondary--sm"
                   onClick={downloadCSV}
-                  title="Скачать подборку в формате CSV (открывается в Excel)"
+                  title="Скачать CSV"
                 >
                   <Download size={15} />
                   CSV
@@ -284,7 +270,7 @@ export default function Dashboard({ data, onReset }: Props) {
                   type="button"
                   className="button-secondary button-secondary--sm"
                   onClick={downloadJSON}
-                  title="Скачать полные данные в формате JSON"
+                  title="Скачать JSON"
                 >
                   <Download size={15} />
                   JSON
@@ -292,56 +278,61 @@ export default function Dashboard({ data, onReset }: Props) {
               </div>
             </div>
 
-            <p className="panel-desc">
-              Рекомендации сгруппированы по твоему профилю, предметам и уровню подготовки.
-            </p>
+            {/* Авто-фильтры — что было применено */}
+            {applied_filters && <AutoFilterBadges filters={applied_filters} />}
 
-            <div className="filter-row">
-              {typeFilters.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={`filter-pill ${filter === item ? 'is-active' : ''}`}
-                  onClick={() => setFilter(item)}
-                >
-                  {item === 'all' ? 'Все форматы' : getTypeLabel(item)}
-                </button>
-              ))}
+            {/* Рекомендательная плашка */}
+            <div className="rec-hint">
+              <Sparkles size={14} />
+              <span>
+                Показаны только олимпиады, которые подходят твоему профилю.
+                Внутри подборки — ранжировка по совпадению предметов, сложности и уровня РСОШ.
+              </span>
             </div>
 
+            <p className="panel-desc">
+              Найдено <strong>{total_found ?? recommendations.length}</strong> олимпиад по твоему профилю
+            </p>
+
             <div className="recommendation-list">
-              {filteredRecommendations.length > 0 ? (
-                filteredRecommendations.map((olympiad, index) => (
+              {recommendations.length > 0 ? (
+                recommendations.map((olympiad, index) => (
                   <OlympiadCard
                     key={olympiad.id}
                     olympiad={olympiad}
                     profile={profile}
                     rank={index + 1}
+                    recLabel={getRecommendLabel(olympiad.recommendation_score ?? 0)}
                   />
                 ))
               ) : (
                 <div className="empty-state">
                   <Sparkles size={18} />
-                  <p>В этой категории пока нет карточек под выбранный профиль.</p>
+                  <p>По твоему профилю не нашлось подходящих олимпиад. Попробуй изменить предметы или цель.</p>
                 </div>
               )}
             </div>
           </section>
         )}
 
+        {/* ── КАЛЕНДАРЬ ────────────────────────────────────── */}
         {tab === 'calendar' && (
           <section className="panel-section">
             <div className="panel-section__head">
               <div>
                 <p className="kicker">Ритм сезона</p>
-                <h2>Дедлайны и этапы без визуального шума</h2>
+                <h2>Промежутки участия — от старта до дедлайна</h2>
               </div>
-              <p>Лента событий и месячный срез помогают быстро понять, где сезон начинает сгущаться.</p>
+              <p>
+                Каждый этап показан в виде диапазона: начало → дедлайн. Так видно, когда
+                можно успеть подготовиться и сдать.
+              </p>
             </div>
             <CalendarView events={calendar} />
           </section>
         )}
 
+        {/* ── СТАТИСТИКА ───────────────────────────────────── */}
         {tab === 'stats' && (
           <section className="panel-section">
             <div className="panel-section__head">
@@ -360,14 +351,13 @@ export default function Dashboard({ data, onReset }: Props) {
                 </div>
                 <div className="meter-stack">
                   {profile.subjects.map((subject) => {
-                    const count = recommendations.filter((item) =>
-                      (item.subjects ?? []).includes(subject),
+                    const count = recommendations.filter((r) =>
+                      (r.subjects ?? []).includes(subject),
                     ).length;
                     const width =
                       recommendations.length > 0
                         ? Math.max(8, Math.round((count / recommendations.length) * 100))
                         : 8;
-
                     return (
                       <div key={subject} className="meter-row">
                         <div className="meter-row__label">
@@ -390,24 +380,15 @@ export default function Dashboard({ data, onReset }: Props) {
                 </div>
                 <div className="meter-stack">
                   {[
-                    {
-                      label: 'I уровень РСОШ',
-                      count: recommendations.filter((item) => item.level === 1).length,
-                    },
-                    {
-                      label: 'II уровень РСОШ',
-                      count: recommendations.filter((item) => item.level === 2).length,
-                    },
-                    {
-                      label: 'Другие форматы',
-                      count: recommendations.filter((item) => (item.level ?? 0) > 2 || item.level == null).length,
-                    },
+                    { label: 'I уровень РСОШ', count: recommendations.filter((r) => r.level === 1).length },
+                    { label: 'II уровень РСОШ', count: recommendations.filter((r) => r.level === 2).length },
+                    { label: 'III уровень РСОШ', count: recommendations.filter((r) => r.level === 3).length },
+                    { label: 'Другие форматы', count: recommendations.filter((r) => !r.level).length },
                   ].map((item) => {
                     const width =
                       recommendations.length > 0
                         ? Math.max(8, Math.round((item.count / recommendations.length) * 100))
                         : 8;
-
                     return (
                       <div key={item.label} className="meter-row">
                         <div className="meter-row__label">
@@ -431,10 +412,9 @@ export default function Dashboard({ data, onReset }: Props) {
                 <div className="month-bars">
                   {Array.from({ length: 12 }, (_, index) => {
                     const month = index + 1;
-                    const count = calendar.filter((event) => event.month === month).length;
+                    const count = calendar.filter((e) => e.month === month).length;
                     const height = count > 0 ? Math.max(14, Math.min(88, count * 14)) : 8;
                     const labels = ['Я', 'Ф', 'М', 'А', 'М', 'И', 'И', 'А', 'С', 'О', 'Н', 'Д'];
-
                     return (
                       <div key={month} className="month-bars__item">
                         <div className="month-bars__track">

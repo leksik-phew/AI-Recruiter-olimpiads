@@ -12,6 +12,8 @@ export interface OlympiadStage {
   name: string;
   month: number;
   day: number;
+  end_month?: number | null;
+  end_day?: number | null;
   desc: string;
 }
 
@@ -46,10 +48,31 @@ export interface CalendarEvent {
   day: number;
   year: number;
   date_str: string;
+  end_month?: number | null;
+  end_day?: number | null;
+  end_year?: number | null;
+  end_date_str?: string | null;
   desc: string;
   priority: 'high' | 'medium' | 'low';
   recommendation_score: number;
   type: string;
+  level?: number | null;
+  subjects?: string[];
+}
+
+export interface FilterBadge {
+  label: string;
+  icon: string;
+  reason?: string;
+}
+
+export interface AppliedFilters {
+  grade: number;
+  subjects: string[];
+  allowed_types: string[] | null;
+  prefer_online: boolean;
+  goal: string;
+  badges: FilterBadge[];
 }
 
 export interface RecommendResponse {
@@ -57,6 +80,7 @@ export interface RecommendResponse {
   recommendations: Olympiad[];
   calendar: CalendarEvent[];
   total_found: number;
+  applied_filters?: AppliedFilters;
 }
 
 export interface MetaData {

@@ -1035,6 +1035,12 @@ a {
   text-transform: uppercase;
 }
 
+.stage-pill__range {
+  font-weight: 400;
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
 .olympiad-card__expander {
   margin-top: 18px;
   border-top: 1px solid rgba(93, 66, 65, 0.1);
@@ -1361,6 +1367,196 @@ a {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ── Рекомендательные метки ─────────────────────────────── */
+.rec-hint {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(210, 198, 253, 0.2);
+  color: var(--lavender-grey);
+  font-size: 0.8rem;
+  margin-bottom: 16px;
+}
+
+.rec-label {
+  display: block;
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.rec-label--perfect { color: #5a8c6a; }
+.rec-label--good    { color: var(--lavender-grey); }
+.rec-label--partial { color: var(--taupe); }
+.rec-label--neutral { color: rgba(246, 242, 255, 0.52); }
+
+/* ── Авто-фильтр бейджи ─────────────────────────────────── */
+.auto-filter-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.38);
+  border: 1px solid rgba(210, 198, 253, 0.4);
+  margin-bottom: 14px;
+}
+
+.auto-filter-bar__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  white-space: nowrap;
+  margin-top: 3px;
+}
+
+.auto-filter-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.auto-filter-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  background: rgba(210, 198, 253, 0.3);
+  color: var(--lavender-grey);
+  border: 1px solid rgba(210, 198, 253, 0.6);
+  cursor: default;
+}
+
+.auto-filter-badge--grade {
+  background: rgba(179, 196, 232, 0.3);
+  color: #4d6a96;
+  border-color: rgba(179, 196, 232, 0.6);
+}
+
+.auto-filter-badge--subjects {
+  background: rgba(210, 198, 253, 0.25);
+  color: var(--lavender-grey);
+  border-color: rgba(210, 198, 253, 0.5);
+}
+
+.auto-filter-badge--goal {
+  background: rgba(90, 140, 106, 0.12);
+  color: #4a7a5a;
+  border-color: rgba(90, 140, 106, 0.3);
+}
+
+.auto-filter-badge--online {
+  background: rgba(167, 147, 136, 0.15);
+  color: var(--taupe);
+  border-color: rgba(167, 147, 136, 0.35);
+}
+
+/* ── Панель фильтров (устаревшая, оставлена для совместимости) */
+/* ── Панель фильтров ────────────────────────────────────── */
+.filter-panel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.44);
+  margin-bottom: 18px;
+  animation: filterIn 0.18s ease;
+}
+
+@keyframes filterIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.filter-group {
+  display: grid;
+  gap: 8px;
+}
+
+.filter-group__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.filter-row--wrap {
+  flex-wrap: wrap;
+}
+
+/* ── Панель дат в карточках ─────────────────────────────── */
+.timeline-card__period {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.period-start {
+  font-weight: 600;
+  color: var(--chocolate-plum);
+}
+
+.period-end {
+  color: var(--muted);
+}
+
+.period-end--deadline {
+  font-weight: 600;
+  color: #c05050;
+}
+
+.period-arrow {
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.period-bar {
+  width: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(93, 66, 65, 0.1);
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.period-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgba(210, 198, 253, 0.7), rgba(93, 66, 65, 0.6));
+}
+
+/* ── Диапазон в сайдбаре ────────────────────────────────── */
+.alert-card__range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.alert-card__range span:first-child {
+  font-weight: 600;
+  color: var(--chocolate-plum);
+}
+
+/* ── Кнопка фильтров — активное состояние ───────────────── */
+.button-secondary.is-active {
+  background: rgba(210, 198, 253, 0.42);
+  border-color: rgba(137, 126, 170, 0.4);
 }
 
 @media (max-width: 1080px) {

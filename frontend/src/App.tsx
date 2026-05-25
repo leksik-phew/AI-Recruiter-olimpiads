@@ -6,23 +6,29 @@ import Dashboard from './components/Dashboard';
 
 type AppState = 'form' | 'loading' | 'dashboard' | 'error';
 
+const PROFILE_KEY = 'olymp_saved_profile';
+
+function readSavedProfile(): StudentProfile | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    return raw ? (JSON.parse(raw) as StudentProfile) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function App() {
   const [state, setState] = useState<AppState>('form');
   const [meta, setMeta] = useState<MetaData | null>(null);
   const [result, setResult] = useState<RecommendResponse | null>(null);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    getMeta()
-      .then(setMeta)
-      .catch(() => {
-        setError(
-          'Не удалось подключиться к серверу. Проверьте, что backend запущен на порту 8000.',
-        );
-      });
-  }, []);
+  // Читаем localStorage сразу — до первого рендера
+  const [savedProfile, setSavedProfile] = useState<StudentProfile | null>(readSavedProfile);
 
   const handleSubmit = async (profile: StudentProfile) => {
+    // Сохраняем профиль — переживёт перезагрузку страницы
+    localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    setSavedProfile(profile);
     setState('loading');
 
     try {
@@ -37,6 +43,23 @@ export default function App() {
       setState('error');
     }
   };
+
+  useEffect(() => {
+    getMeta()
+      .then((metaData) => {
+        setMeta(metaData);
+        // Если есть сохранённый профиль — сразу загружаем дашборд
+        const saved = readSavedProfile();
+        if (saved) {
+          handleSubmit(saved);
+        }
+      })
+      .catch(() => {
+        setError(
+          'Не удалось подключиться к серверу. Проверьте, что backend запущен на порту 8000.',
+        );
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (error && !meta) {
     return (
@@ -108,6 +131,7 @@ export default function App() {
       meta={meta}
       onSubmit={handleSubmit}
       loading={state === 'loading'}
+      initialProfile={savedProfile ?? undefined}
     />
   );
 }

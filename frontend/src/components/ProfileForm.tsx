@@ -15,6 +15,7 @@ interface Props {
   meta: MetaData;
   onSubmit: (profile: StudentProfile) => void;
   loading: boolean;
+  initialProfile?: StudentProfile;
 }
 
 // Резервный список предметов, если сервер вернул пустой список
@@ -81,17 +82,19 @@ function getLevelLabel(level: string) {
   return level;
 }
 
-export default function ProfileForm({ meta, onSubmit, loading }: Props) {
+export default function ProfileForm({ meta, onSubmit, loading, initialProfile }: Props) {
   const [step, setStep] = useState(0);
-  const [profile, setProfile] = useState<StudentProfile>({
-    name: '',
-    grade: 9,
-    subjects: [],
-    region: '',
-    preparation_level: meta.preparation_levels[1] ?? meta.preparation_levels[0] ?? '',
-    prefer_online: false,
-    goals: GOAL_OPTIONS[0].value,
-  });
+  const [profile, setProfile] = useState<StudentProfile>(
+    initialProfile ?? {
+      name: '',
+      grade: 9,
+      subjects: [],
+      region: '',
+      preparation_level: meta.preparation_levels[1] ?? meta.preparation_levels[0] ?? '',
+      prefer_online: false,
+      goals: GOAL_OPTIONS[0].value,
+    },
+  );
 
   const update = <K extends keyof StudentProfile>(field: K, value: StudentProfile[K]) => {
     setProfile((current) => ({
