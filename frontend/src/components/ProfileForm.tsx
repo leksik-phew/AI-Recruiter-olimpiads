@@ -144,7 +144,7 @@ export default function ProfileForm({ meta, onSubmit, loading, initialProfile }:
         <div className="entry-hero__grid">
           <div className="entry-hero__copy">
             <p className="kicker">Персональная навигация по олимпиадам</p>
-            <h1>Собери кабинет, который ощущается как твоя интеллектуальная траектория</h1>
+            <h1>Олимпиадный кабинет, помогающий с подбором и отслеживанием мероприятий</h1>
             <p className="entry-hero__lead">
               Анкета не просто фильтрует список, а собирает профиль школьника, чтобы дальше
               показывать живые рекомендации и календарь сезона.

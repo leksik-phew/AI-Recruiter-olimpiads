@@ -190,10 +190,6 @@ export default function Dashboard({ data, onReset }: Props) {
           <div className="dashboard-hero__copy">
             <p className="kicker">Сезонный профиль</p>
             <h1>{profile.name}, вот кабинет под твой олимпиадный ритм</h1>
-            <p>
-              Мы собрали рекомендации и календарь так, чтобы они выглядели как продуманная
-              траектория.
-            </p>
           </div>
 
           <aside className="profile-ribbon">
@@ -286,7 +282,7 @@ export default function Dashboard({ data, onReset }: Props) {
               <Sparkles size={14} />
               <span>
                 Показаны только олимпиады, которые подходят твоему профилю.
-                Внутри подборки — ранжировка по совпадению предметов, сложности и уровня РСОШ.
+                Внутри подборки - ранжировка по совпадению предметов, сложности и уровня РСОШ.
               </span>
             </div>
 
@@ -321,7 +317,7 @@ export default function Dashboard({ data, onReset }: Props) {
             <div className="panel-section__head">
               <div>
                 <p className="kicker">Ритм сезона</p>
-                <h2>Промежутки участия — от старта до дедлайна</h2>
+                <h2>Промежутки участия - от старта до дедлайна</h2>
               </div>
               <p>
                 Каждый этап показан в виде диапазона: начало → дедлайн. Так видно, когда
