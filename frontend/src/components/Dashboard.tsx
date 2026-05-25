@@ -1,8 +1,15 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import {
+  BarChart3,
+  CalendarDays,
+  RefreshCcw,
+  Sparkles,
+  Star,
+  Trophy,
+} from 'lucide-react';
 import type { RecommendResponse } from '../types';
-import OlympiadCard from './OlympiadCard';
 import CalendarView from './CalendarView';
-import { Trophy, Calendar, BarChart2, RotateCcw, Sparkles, BookOpen, Star } from 'lucide-react';
+import OlympiadCard from './OlympiadCard';
 
 interface Props {
   data: RecommendResponse;
@@ -11,267 +18,322 @@ interface Props {
 
 type Tab = 'recommendations' | 'calendar' | 'stats';
 
-const SUBJECT_EMOJIS: Record<string, string> = {
-  математика: '📐',
-  физика: '⚡',
-  информатика: '💻',
-  химия: '🧪',
-  биология: '🌿',
-  история: '📜',
-  литература: '📖',
-  'английский язык': '🇬🇧',
-  экономика: '💹',
-  география: '🌍',
+const SUBJECT_MARKS: Record<string, string> = {
+  математика: 'M',
+  физика: 'P',
+  информатика: 'CS',
+  химия: 'CH',
+  биология: 'BIO',
+  история: 'H',
+  литература: 'LIT',
+  обществознание: 'SOC',
+  экономика: 'EC',
+  география: 'GEO',
+  'английский язык': 'ENG',
+  'русский язык': 'RU',
 };
+
+function getSubjectMark(subject: string) {
+  return SUBJECT_MARKS[subject.toLowerCase()] ?? subject.slice(0, 2).toUpperCase();
+}
+
+function getTypeLabel(type: string) {
+  const normalized = type.toLowerCase();
+
+  if (normalized.includes('олим')) {
+    return 'Олимпиады';
+  }
+
+  if (normalized.includes('конкур')) {
+    return 'Конкурсы';
+  }
+
+  if (normalized.includes('конфер')) {
+    return 'Конференции';
+  }
+
+  return type;
+}
 
 export default function Dashboard({ data, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('recommendations');
-  const [filter, setFilter] = useState<string>('all');
+  const [filter, setFilter] = useState('all');
 
   const { profile, recommendations, calendar } = data;
 
+  const typeFilters = useMemo(
+    () => ['all', ...Array.from(new Set(recommendations.map((item) => item.type)))],
+    [recommendations],
+  );
+
+  const filteredRecommendations =
+    filter === 'all'
+      ? recommendations
+      : recommendations.filter((item) => item.type === filter);
+
+  const highLevelCount = recommendations.filter((item) => item.level === 1).length;
+  const onlineCount = recommendations.filter((item) => item.online).length;
+  const averageMatch =
+    recommendations.length > 0
+      ? Math.round(
+          (recommendations.reduce(
+            (sum, item) => sum + (item.recommendation_score ?? 0),
+            0,
+          ) /
+            recommendations.length) *
+            100,
+        )
+      : 0;
+
   const tabs = [
-    { id: 'recommendations', label: 'Рекомендации', icon: Trophy, count: recommendations.length },
-    { id: 'calendar', label: 'Календарь', icon: Calendar, count: calendar.length },
-    { id: 'stats', label: 'Статистика', icon: BarChart2, count: null },
+    { id: 'recommendations', label: 'Подборка', count: recommendations.length, icon: Trophy },
+    { id: 'calendar', label: 'Календарь', count: calendar.length, icon: CalendarDays },
+    { id: 'stats', label: 'Срез', count: null, icon: BarChart3 },
   ] as const;
 
-  const typeFilters = ['all', ...Array.from(new Set(recommendations.map(r => r.type)))];
-
-  const filtered = filter === 'all'
-    ? recommendations
-    : recommendations.filter(r => r.type === filter);
-
-  // Stats
-  const level1Count = recommendations.filter(r => r.level === 1).length;
-  const onlineCount = recommendations.filter(r => r.online).length;
-  const avgScore = recommendations.length > 0
-    ? Math.round(recommendations.reduce((a, r) => a + (r.recommendation_score ?? 0), 0) / recommendations.length * 100)
-    : 0;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
-      {/* Top nav */}
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-10 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
-              <Sparkles size={14} className="text-white" />
-            </div>
-            <span className="font-bold text-gray-900 hidden sm:block">AI-Рекрутер</span>
+    <main className="app-shell">
+      <section className="dashboard-hero">
+        <div className="dashboard-hero__topline">
+          <div className="entry-hero__eyebrow">
+            <span className="entry-hero__stamp">Olymp Dossier</span>
+            <span className="entry-hero__season">личный кабинет ученика</span>
           </div>
 
-          <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl px-3 py-2 min-w-0">
-            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 text-xs font-bold text-indigo-600">
-              {profile.name[0]?.toUpperCase()}
-            </div>
-            <div className="min-w-0">
-              <span className="font-medium text-gray-900 text-sm">{profile.name}</span>
-              <span className="text-gray-400 text-sm">, {profile.grade} класс</span>
-              <span className="text-gray-400 text-sm hidden sm:inline"> · {profile.region}</span>
-            </div>
-            <div className="ml-auto flex gap-1 flex-shrink-0">
-              {profile.subjects.map(s => (
-                <span key={s} title={s} className="text-base">{SUBJECT_EMOJIS[s] ?? '📘'}</span>
-              ))}
-            </div>
-          </div>
-
-          <button
-            onClick={onReset}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 transition-colors px-3 py-2 rounded-xl hover:bg-gray-100"
-          >
-            <RotateCcw size={14} />
-            <span className="hidden sm:block">Изменить</span>
+          <button type="button" className="button-secondary" onClick={onReset}>
+            <RefreshCcw size={16} />
+            Изменить профиль
           </button>
         </div>
-      </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
-        {/* Hero summary */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 rounded-2xl p-6 text-white mb-6 shadow-lg shadow-indigo-200">
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <div className="text-indigo-200 text-sm mb-1">Твой план на учебный год 2025/26</div>
-              <h2 className="text-2xl font-bold mb-1">{profile.name}, привет! 👋</h2>
-              <p className="text-indigo-200 text-sm">
-                AI подобрал <strong className="text-white">{recommendations.length} олимпиад</strong>{' '}
-                по твоим предметам · {calendar.length} дат в календаре
-              </p>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-white/20 rounded-xl p-3 text-center">
-                <div className="text-2xl font-bold">{level1Count}</div>
-                <div className="text-xs text-indigo-200">I уровень</div>
-              </div>
-              <div className="bg-white/20 rounded-xl p-3 text-center">
-                <div className="text-2xl font-bold">{onlineCount}</div>
-                <div className="text-xs text-indigo-200">онлайн</div>
-              </div>
-              <div className="bg-white/20 rounded-xl p-3 text-center">
-                <div className="text-2xl font-bold">{avgScore}%</div>
-                <div className="text-xs text-indigo-200">совпадение</div>
-              </div>
-            </div>
+        <div className="dashboard-hero__grid">
+          <div className="dashboard-hero__copy">
+            <p className="kicker">Сезонный профиль</p>
+            <h1>{profile.name}, вот кабинет под твой олимпиадный ритм</h1>
+            <p>
+              Мы собрали рекомендации и календарь так, чтобы они выглядели как продуманная
+              траектория, а не случайный каталог мероприятий.
+            </p>
           </div>
+
+          <aside className="profile-ribbon">
+            <div className="profile-ribbon__avatar">{profile.name.slice(0, 1).toUpperCase()}</div>
+            <div className="profile-ribbon__meta">
+              <strong>
+                {profile.name}, {profile.grade} класс
+              </strong>
+              <span>{profile.region}</span>
+            </div>
+            <div className="profile-ribbon__subjects">
+              {profile.subjects.map((subject) => (
+                <span key={subject}>{getSubjectMark(subject)}</span>
+              ))}
+            </div>
+          </aside>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
-          {tabs.map(({ id, label, icon: Icon, count }) => (
+        <div className="stat-row">
+          <article className="stat-card">
+            <span>Сильные олимпиады</span>
+            <strong>{highLevelCount}</strong>
+            <small>уровень РСОШ I</small>
+          </article>
+          <article className="stat-card">
+            <span>Онлайн-этапы</span>
+            <strong>{onlineCount}</strong>
+            <small>удобны под регион</small>
+          </article>
+          <article className="stat-card stat-card--accent">
+            <span>Совпадение профиля</span>
+            <strong>{averageMatch}%</strong>
+            <small>средний матч рекомендаций</small>
+          </article>
+        </div>
+      </section>
+
+      <section className="dashboard-panel">
+        <div className="tabbar">
+          {tabs.map(({ id, label, count, icon: Icon }) => (
             <button
               key={id}
-              onClick={() => setTab(id as Tab)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                tab === id
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+              type="button"
+              className={`tabbar__item ${tab === id ? 'is-active' : ''}`}
+              onClick={() => setTab(id)}
             >
-              <Icon size={15} />
-              <span className="hidden sm:inline">{label}</span>
-              {count !== null && (
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    tab === id ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-500'
-                  }`}
-                >
-                  {count}
-                </span>
-              )}
+              <Icon size={16} />
+              <span>{label}</span>
+              {count !== null && <small>{count}</small>}
             </button>
           ))}
         </div>
 
-        {/* Recommendations tab */}
         {tab === 'recommendations' && (
-          <div className="space-y-4">
-            {/* Type filter */}
-            <div className="flex gap-2 flex-wrap">
-              {typeFilters.map(f => (
+          <section className="panel-section">
+            <div className="panel-section__head">
+              <div>
+                <p className="kicker">Кураторская подборка</p>
+                <h2>Что стоит взять в работу прямо сейчас</h2>
+              </div>
+              <p>
+                Рекомендации сгруппированы по твоему профилю, предметам и уровню подготовки.
+              </p>
+            </div>
+
+            <div className="filter-row">
+              {typeFilters.map((item) => (
                 <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                    filter === f
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-white text-gray-500 border border-gray-200 hover:bg-indigo-50 hover:text-indigo-600'
-                  }`}
+                  key={item}
+                  type="button"
+                  className={`filter-pill ${filter === item ? 'is-active' : ''}`}
+                  onClick={() => setFilter(item)}
                 >
-                  {f === 'all' ? '🔵 Все' : f === 'олимпиада' ? '🏆 Олимпиады' : f === 'конкурс' ? '🎯 Конкурсы' : '📚 Конференции'}
+                  {item === 'all' ? 'Все форматы' : getTypeLabel(item)}
                 </button>
               ))}
             </div>
 
-            {filtered.length === 0 ? (
-              <div className="text-center py-12 text-gray-400">
-                Нет рекомендаций в этой категории
-              </div>
-            ) : (
-              filtered.map((o, i) => (
-                <OlympiadCard key={o.id} olympiad={o} profile={profile} rank={i + 1} />
-              ))
-            )}
-          </div>
+            <div className="recommendation-list">
+              {filteredRecommendations.length > 0 ? (
+                filteredRecommendations.map((olympiad, index) => (
+                  <OlympiadCard
+                    key={olympiad.id}
+                    olympiad={olympiad}
+                    profile={profile}
+                    rank={index + 1}
+                  />
+                ))
+              ) : (
+                <div className="empty-state">
+                  <Sparkles size={18} />
+                  <p>В этой категории пока нет карточек под выбранный профиль.</p>
+                </div>
+              )}
+            </div>
+          </section>
         )}
 
-        {/* Calendar tab */}
-        {tab === 'calendar' && <CalendarView events={calendar} />}
+        {tab === 'calendar' && (
+          <section className="panel-section">
+            <div className="panel-section__head">
+              <div>
+                <p className="kicker">Ритм сезона</p>
+                <h2>Дедлайны и этапы без визуального шума</h2>
+              </div>
+              <p>Лента событий и месячный срез помогают быстро понять, где сезон начинает сгущаться.</p>
+            </div>
+            <CalendarView events={calendar} />
+          </section>
+        )}
 
-        {/* Stats tab */}
         {tab === 'stats' && (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {/* Subjects breakdown */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <BookOpen size={16} className="text-indigo-500" />
-                По предметам
-              </h3>
-              <div className="space-y-3">
-                {profile.subjects.map(subj => {
-                  const count = recommendations.filter(r => r.subjects.includes(subj)).length;
-                  const pct = Math.round((count / recommendations.length) * 100);
-                  return (
-                    <div key={subj}>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-gray-700">
-                          {SUBJECT_EMOJIS[subj] ?? '📘'} {subj}
-                        </span>
-                        <span className="text-gray-400">{count} олимпиад</span>
-                      </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gradient-to-r from-indigo-400 to-violet-400 rounded-full"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+          <section className="panel-section">
+            <div className="panel-section__head">
+              <div>
+                <p className="kicker">Аналитический срез</p>
+                <h2>Как выглядит твой сезон в цифрах</h2>
               </div>
+              <p>Небольшая аналитика, чтобы понимать баланс предметов, уровней и месяцев.</p>
             </div>
 
-            {/* Level distribution */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Star size={16} className="text-amber-500" />
-                По уровню
-              </h3>
-              <div className="space-y-3">
-                {[
-                  { label: 'I уровень РСОШ', color: 'bg-amber-400', count: recommendations.filter(r => r.level === 1).length },
-                  { label: 'II уровень РСОШ', color: 'bg-sky-400', count: recommendations.filter(r => r.level === 2).length },
-                  { label: 'Другие конкурсы', color: 'bg-gray-300', count: recommendations.filter(r => r.level === 3).length },
-                ].map(({ label, color, count }) => (
-                  <div key={label}>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-700">{label}</span>
-                      <span className="text-gray-400">{count}</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${color} rounded-full`}
-                        style={{ width: `${Math.round((count / recommendations.length) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <div className="insight-grid">
+              <article className="insight-card">
+                <div className="insight-card__title">
+                  <Star size={16} />
+                  <h3>Предметный баланс</h3>
+                </div>
+                <div className="meter-stack">
+                  {profile.subjects.map((subject) => {
+                    const count = recommendations.filter((item) =>
+                      item.subjects.includes(subject),
+                    ).length;
+                    const width =
+                      recommendations.length > 0
+                        ? Math.max(8, Math.round((count / recommendations.length) * 100))
+                        : 0;
 
-            {/* Timeline overview */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:col-span-2">
-              <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Calendar size={16} className="text-emerald-500" />
-                Распределение по месяцам
-              </h3>
-              <div className="grid grid-cols-12 gap-1">
-                {Array.from({ length: 12 }, (_, i) => {
-                  const m = i + 1;
-                  const count = calendar.filter(e => e.month === m).length;
-                  const height = count > 0 ? Math.max(20, Math.min(80, count * 15)) : 4;
-                  const months = ['С', 'О', 'Н', 'Д', 'Я', 'Ф', 'М', 'А', 'М', 'И', 'И', 'А'];
-                  const monthIdx = (m + 7) % 12; // Начинаем с сентября
-
-                  return (
-                    <div key={m} className="flex flex-col items-center gap-1">
-                      <div className="flex items-end h-20">
-                        <div
-                          className="w-5 bg-indigo-400 rounded-t-lg transition-all"
-                          style={{ height: `${height}px` }}
-                          title={`${count} событий`}
-                        />
+                    return (
+                      <div key={subject} className="meter-row">
+                        <div className="meter-row__label">
+                          <span>{subject}</span>
+                          <small>{count}</small>
+                        </div>
+                        <div className="meter">
+                          <div className="meter__fill" style={{ width: `${width}%` }} />
+                        </div>
                       </div>
-                      <span className="text-xs text-gray-400">{months[monthIdx]}</span>
-                      {count > 0 && <span className="text-xs text-indigo-600 font-bold">{count}</span>}
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              </article>
+
+              <article className="insight-card">
+                <div className="insight-card__title">
+                  <Trophy size={16} />
+                  <h3>Уровень событий</h3>
+                </div>
+                <div className="meter-stack">
+                  {[
+                    {
+                      label: 'I уровень РСОШ',
+                      count: recommendations.filter((item) => item.level === 1).length,
+                    },
+                    {
+                      label: 'II уровень РСОШ',
+                      count: recommendations.filter((item) => item.level === 2).length,
+                    },
+                    {
+                      label: 'Другие форматы',
+                      count: recommendations.filter((item) => item.level > 2).length,
+                    },
+                  ].map((item) => {
+                    const width =
+                      recommendations.length > 0
+                        ? Math.max(8, Math.round((item.count / recommendations.length) * 100))
+                        : 0;
+
+                    return (
+                      <div key={item.label} className="meter-row">
+                        <div className="meter-row__label">
+                          <span>{item.label}</span>
+                          <small>{item.count}</small>
+                        </div>
+                        <div className="meter meter--soft">
+                          <div className="meter__fill meter__fill--plum" style={{ width: `${width}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
+
+              <article className="insight-card insight-card--wide">
+                <div className="insight-card__title">
+                  <CalendarDays size={16} />
+                  <h3>Месячная плотность</h3>
+                </div>
+                <div className="month-bars">
+                  {Array.from({ length: 12 }, (_, index) => {
+                    const month = index + 1;
+                    const count = calendar.filter((event) => event.month === month).length;
+                    const height = count > 0 ? Math.max(14, Math.min(88, count * 14)) : 8;
+                    const labels = ['Я', 'Ф', 'М', 'А', 'М', 'И', 'И', 'А', 'С', 'О', 'Н', 'Д'];
+
+                    return (
+                      <div key={month} className="month-bars__item">
+                        <div className="month-bars__track">
+                          <div className="month-bars__fill" style={{ height: `${height}px` }} />
+                        </div>
+                        <span>{labels[index]}</span>
+                        <small>{count}</small>
+                      </div>
+                    );
+                  })}
+                </div>
+              </article>
             </div>
-          </div>
+          </section>
         )}
-      </div>
-    </div>
+      </section>
+    </main>
   );
 }

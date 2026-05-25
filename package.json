@@ -1,0 +1,10 @@
+{
+  "name": "kodikterpils",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c magenta,cyan \"python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000 --app-dir backend\" \"npm --prefix frontend run dev -- --host 0.0.0.0\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
