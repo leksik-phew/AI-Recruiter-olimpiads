@@ -696,6 +696,25 @@ a {
   cursor: not-allowed;
 }
 
+.button-secondary--sm {
+  min-height: 38px;
+  padding: 0 14px;
+  font-size: 0.78rem;
+}
+
+.download-group {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.panel-desc {
+  margin: 0 0 18px;
+  color: var(--muted);
+  line-height: 1.72;
+  max-width: 720px;
+}
+
 .profile-ribbon {
   display: grid;
   grid-template-columns: 72px 1fr;

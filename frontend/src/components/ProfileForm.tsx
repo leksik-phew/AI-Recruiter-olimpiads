@@ -17,6 +17,22 @@ interface Props {
   loading: boolean;
 }
 
+// Резервный список предметов, если сервер вернул пустой список
+const FALLBACK_SUBJECTS = [
+  'математика',
+  'физика',
+  'информатика',
+  'химия',
+  'биология',
+  'история',
+  'литература',
+  'экономика',
+  'география',
+  'английский язык',
+  'русский язык',
+  'обществознание',
+];
+
 const STEPS = [
   { icon: UserRound, label: 'Знакомство', caption: 'Имя и класс' },
   { icon: BookOpen, label: 'Профиль', caption: 'Предметы и уровень' },
@@ -223,7 +239,7 @@ export default function ProfileForm({ meta, onSubmit, loading }: Props) {
               </div>
 
               <div className="subject-cloud">
-                {meta.subjects.map((subject) => (
+                {(meta.subjects.length > 0 ? meta.subjects : FALLBACK_SUBJECTS).map((subject) => (
                   <button
                     key={subject}
                     type="button"

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   BarChart3,
   CalendarDays,
+  Download,
   RefreshCcw,
   Sparkles,
   Star,
@@ -55,6 +56,15 @@ function getTypeLabel(type: string) {
   return type;
 }
 
+function escapeCsvCell(value: string | number | boolean | null | undefined): string {
+  const str = value == null ? '' : String(value);
+  // Если содержит запятую, кавычки или переносы — оборачиваем в кавычки
+  if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+    return `"${str.replace(/"/g, '""')}"`;
+  }
+  return str;
+}
+
 export default function Dashboard({ data, onReset }: Props) {
   const [tab, setTab] = useState<Tab>('recommendations');
   const [filter, setFilter] = useState('all');
@@ -84,6 +94,92 @@ export default function Dashboard({ data, onReset }: Props) {
             100,
         )
       : 0;
+
+  const downloadCSV = () => {
+    const headers = [
+      '№',
+      'Название',
+      'Организатор',
+      'Тип',
+      'Уровень',
+      'Сложность',
+      'Предметы',
+      'Классы',
+      'Онлайн',
+      'Совпадение%',
+      'Этапов',
+      'Призы',
+      'Сайт',
+    ];
+
+    const rows = recommendations.map((o, i) => [
+      i + 1,
+      escapeCsvCell(o.name),
+      escapeCsvCell(o.organizer ?? ''),
+      escapeCsvCell(o.type),
+      o.level ? `${o.level} уровень РСОШ` : 'другой формат',
+      escapeCsvCell(o.difficulty ?? ''),
+      escapeCsvCell((o.subjects ?? []).join('; ')),
+      escapeCsvCell((o.grades ?? []).join('; ')),
+      o.online ? 'да' : 'нет',
+      Math.round((o.recommendation_score ?? 0) * 100),
+      (o.stages ?? []).length,
+      escapeCsvCell(o.prize ?? ''),
+      escapeCsvCell(o.url),
+    ]);
+
+    const csvLines = [
+      headers.join(','),
+      ...rows.map((row) => row.join(',')),
+    ];
+
+    // BOM для корректного отображения кириллицы в Excel
+    const csv = '﻿' + csvLines.join('\r\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `olympiads_${profile.name}_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadJSON = () => {
+    const payload = {
+      profile,
+      exported_at: new Date().toISOString(),
+      recommendations: recommendations.map((o) => ({
+        id: o.id,
+        name: o.name,
+        organizer: o.organizer,
+        type: o.type,
+        level: o.level,
+        difficulty: o.difficulty,
+        subjects: o.subjects,
+        grades: o.grades,
+        online: o.online,
+        recommendation_score: o.recommendation_score,
+        match_reasons: o.match_reasons,
+        url: o.url,
+        stages: o.stages,
+        prize: o.prize,
+        description: o.description,
+      })),
+    };
+
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `olympiads_${profile.name}_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const tabs = [
     { id: 'recommendations', label: 'Подборка', count: recommendations.length, icon: Trophy },
@@ -174,10 +270,31 @@ export default function Dashboard({ data, onReset }: Props) {
                 <p className="kicker">Кураторская подборка</p>
                 <h2>Что стоит взять в работу прямо сейчас</h2>
               </div>
-              <p>
-                Рекомендации сгруппированы по твоему профилю, предметам и уровню подготовки.
-              </p>
+              <div className="download-group">
+                <button
+                  type="button"
+                  className="button-secondary button-secondary--sm"
+                  onClick={downloadCSV}
+                  title="Скачать подборку в формате CSV (открывается в Excel)"
+                >
+                  <Download size={15} />
+                  CSV
+                </button>
+                <button
+                  type="button"
+                  className="button-secondary button-secondary--sm"
+                  onClick={downloadJSON}
+                  title="Скачать полные данные в формате JSON"
+                >
+                  <Download size={15} />
+                  JSON
+                </button>
+              </div>
             </div>
+
+            <p className="panel-desc">
+              Рекомендации сгруппированы по твоему профилю, предметам и уровню подготовки.
+            </p>
 
             <div className="filter-row">
               {typeFilters.map((item) => (
@@ -244,12 +361,12 @@ export default function Dashboard({ data, onReset }: Props) {
                 <div className="meter-stack">
                   {profile.subjects.map((subject) => {
                     const count = recommendations.filter((item) =>
-                      item.subjects.includes(subject),
+                      (item.subjects ?? []).includes(subject),
                     ).length;
                     const width =
                       recommendations.length > 0
                         ? Math.max(8, Math.round((count / recommendations.length) * 100))
-                        : 0;
+                        : 8;
 
                     return (
                       <div key={subject} className="meter-row">
@@ -283,13 +400,13 @@ export default function Dashboard({ data, onReset }: Props) {
                     },
                     {
                       label: 'Другие форматы',
-                      count: recommendations.filter((item) => item.level > 2).length,
+                      count: recommendations.filter((item) => (item.level ?? 0) > 2 || item.level == null).length,
                     },
                   ].map((item) => {
                     const width =
                       recommendations.length > 0
                         ? Math.max(8, Math.round((item.count / recommendations.length) * 100))
-                        : 0;
+                        : 8;
 
                     return (
                       <div key={item.label} className="meter-row">

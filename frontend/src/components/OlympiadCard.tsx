@@ -19,8 +19,24 @@ interface Props {
 
 const MONTHS = ['', 'янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
+function getSourceLabel(olympiad: Olympiad): string {
+  // Если есть явный source — используем его
+  if (olympiad.source) {
+    return olympiad.source.split('/')[0].trim();
+  }
+  // Иначе берём hostname из url
+  if (olympiad.url) {
+    try {
+      return new URL(olympiad.url).hostname.replace('www.', '');
+    } catch {
+      return olympiad.url.split('/').slice(0, 3).join('/').replace(/https?:\/\//, '');
+    }
+  }
+  return '';
+}
+
 function getTypeTone(type: string) {
-  const normalized = type.toLowerCase();
+  const normalized = (type || '').toLowerCase();
 
   if (normalized.includes('олим')) {
     return 'lavender';
@@ -33,8 +49,8 @@ function getTypeTone(type: string) {
   return 'taupe';
 }
 
-function getDifficultyTone(level: string) {
-  const normalized = level.toLowerCase();
+function getDifficultyTone(level: string | null | undefined) {
+  const normalized = (level || '').toLowerCase();
 
   if (normalized.includes('выс')) {
     return 'plum';
@@ -47,7 +63,7 @@ function getDifficultyTone(level: string) {
   return 'sage';
 }
 
-function getLevelLabel(level: number) {
+function getLevelLabel(level: number | null | undefined) {
   if (level === 1) {
     return 'I уровень РСОШ';
   }
@@ -65,6 +81,8 @@ export default function OlympiadCard({ olympiad, profile, rank }: Props) {
   const [loadingJustification, setLoadingJustification] = useState(false);
 
   const score = Math.round((olympiad.recommendation_score ?? 0) * 100);
+  const stages = olympiad.stages ?? [];
+  const sourceLabel = getSourceLabel(olympiad);
 
   const loadJustification = async () => {
     if (justification) {
@@ -100,26 +118,34 @@ export default function OlympiadCard({ olympiad, profile, rank }: Props) {
         <div className="olympiad-card__main">
           <div className="olympiad-card__eyebrow">
             <span className={`event-type event-type--${getTypeTone(olympiad.type)}`}>{olympiad.type}</span>
-            <span className="source-pill">{olympiad.source.split('/')[0].trim()}</span>
+            {sourceLabel && (
+              <span className="source-pill">{sourceLabel}</span>
+            )}
           </div>
 
           <h3>{olympiad.name}</h3>
-          <p className="olympiad-card__organizer">{olympiad.organizer}</p>
+          {olympiad.organizer && (
+            <p className="olympiad-card__organizer">{olympiad.organizer}</p>
+          )}
 
           <div className="detail-pills">
             <span className="detail-pill">{getLevelLabel(olympiad.level)}</span>
-            <span className={`detail-pill detail-pill--${getDifficultyTone(olympiad.difficulty)}`}>
-              {olympiad.difficulty}
-            </span>
+            {olympiad.difficulty && (
+              <span className={`detail-pill detail-pill--${getDifficultyTone(olympiad.difficulty)}`}>
+                {olympiad.difficulty}
+              </span>
+            )}
             {olympiad.online && (
               <span className="detail-pill detail-pill--powder">
                 <Wifi size={12} />
                 онлайн
               </span>
             )}
-            <span className="detail-pill">
-              {olympiad.preparation_time_months} мес. подготовки
-            </span>
+            {olympiad.preparation_time_months != null && (
+              <span className="detail-pill">
+                {olympiad.preparation_time_months} мес. подготовки
+              </span>
+            )}
           </div>
         </div>
 
@@ -132,24 +158,28 @@ export default function OlympiadCard({ olympiad, profile, rank }: Props) {
       <div className="olympiad-card__meta">
         <span>
           <CalendarDays size={14} />
-          {olympiad.stages.length} этапов
+          {stages.length} этапов
         </span>
-        <span>
-          <BookOpen size={14} />
-          {olympiad.prize}
-        </span>
+        {olympiad.prize && (
+          <span>
+            <BookOpen size={14} />
+            {olympiad.prize}
+          </span>
+        )}
       </div>
 
-      <div className="stage-row">
-        {olympiad.stages.map((stage, index) => (
-          <div key={`${stage.name}-${index}`} className="stage-pill">
-            <strong>
-              {stage.day} {MONTHS[stage.month]}
-            </strong>
-            <span>{stage.name}</span>
-          </div>
-        ))}
-      </div>
+      {stages.length > 0 && (
+        <div className="stage-row">
+          {stages.map((stage, index) => (
+            <div key={`${stage.name}-${index}`} className="stage-pill">
+              <strong>
+                {stage.day} {MONTHS[stage.month]}
+              </strong>
+              <span>{stage.name}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="olympiad-card__expander">
         <button type="button" className="expander-button" onClick={handleExpand}>
@@ -162,7 +192,9 @@ export default function OlympiadCard({ olympiad, profile, rank }: Props) {
 
         {expanded && (
           <div className="expanded-panel">
-            <p className="expanded-panel__description">{olympiad.description}</p>
+            {olympiad.description && (
+              <p className="expanded-panel__description">{olympiad.description}</p>
+            )}
 
             {olympiad.match_reasons && olympiad.match_reasons.length > 0 && (
               <div className="reason-box">
@@ -187,24 +219,28 @@ export default function OlympiadCard({ olympiad, profile, rank }: Props) {
               )}
             </div>
 
-            <div className="stages-list">
-              {olympiad.stages.map((stage, index) => (
-                <div key={`${stage.name}-${index}-full`} className="stages-list__item">
-                  <strong>
-                    {stage.day} {MONTHS[stage.month]}
-                  </strong>
-                  <div>
-                    <span>{stage.name}</span>
-                    <small>{stage.desc}</small>
+            {stages.length > 0 && (
+              <div className="stages-list">
+                {stages.map((stage, index) => (
+                  <div key={`${stage.name}-${index}-full`} className="stages-list__item">
+                    <strong>
+                      {stage.day} {MONTHS[stage.month]}
+                    </strong>
+                    <div>
+                      <span>{stage.name}</span>
+                      <small>{stage.desc}</small>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
-            <a href={olympiad.url} target="_blank" rel="noreferrer" className="external-link">
-              <ExternalLink size={14} />
-              Перейти на официальный сайт
-            </a>
+            {olympiad.url && (
+              <a href={olympiad.url} target="_blank" rel="noreferrer" className="external-link">
+                <ExternalLink size={14} />
+                Перейти на официальный сайт
+              </a>
+            )}
           </div>
         )}
       </div>
