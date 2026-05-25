@@ -38,7 +38,14 @@ ai_client = OpenAI(
     api_key=_api_key or "no-key",
 )
 
-OPENROUTER_MODEL = "deepseek/deepseek-r1-0528:free"
+# Основная модель + очередь запасных на случай rate-limit (429) или недоступности
+OPENROUTER_MODELS = [
+    "openai/gpt-oss-20b:free",
+    "openai/gpt-oss-120b:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "google/gemma-4-26b-a4b-it:free",
+]
 
 # ──────────────── APP ────────────────
 
@@ -138,43 +145,56 @@ def api_reload_data():
 
 # ──────────────── AI LOGIC ────────────────
 
+import logging
+logger = logging.getLogger("uvicorn.error")
+
 def _generate_ai_justification(olympiad: dict, profile: StudentProfile) -> str:
-    prompt = f"""Ты — персональный образовательный советник для школьников России.
+    prompt = (
+        f"Ты — персональный образовательный советник для школьников России.\n\n"
+        f"Профиль школьника:\n"
+        f"- Имя: {profile.name}\n"
+        f"- Класс: {profile.grade}\n"
+        f"- Предметы: {', '.join(profile.subjects)}\n"
+        f"- Регион: {profile.region}\n"
+        f"- Уровень подготовки: {profile.preparation_level}\n"
+        f"- Цели: {profile.goals or 'не указаны'}\n\n"
+        f"Олимпиада:\n"
+        f"- Название: {olympiad.get('name')}\n"
+        f"- Организатор: {olympiad.get('organizer') or 'не указан'}\n"
+        f"- Уровень: {olympiad.get('level') or 'не указан'}\n"
+        f"- Сложность: {olympiad.get('difficulty') or 'не указана'}\n"
+        f"- Тип: {olympiad.get('type')}\n"
+        f"- Предметы: {', '.join(olympiad.get('subjects') or [])}\n"
+        f"- Онлайн: {'да' if olympiad.get('online') else 'нет/частично'}\n"
+        f"- Награды: {olympiad.get('prize') or 'не указаны'}\n"
+        f"- Описание: {olympiad.get('description') or 'не указано'}\n\n"
+        f"Напиши короткое (3-4 предложения) персонализированное обоснование. "
+        f"Не используй markdown, звёздочки и заголовки — только живой текст."
+    )
 
-Профиль школьника:
-- Имя: {profile.name}
-- Класс: {profile.grade}
-- Предметы: {', '.join(profile.subjects)}
-- Регион: {profile.region}
-- Уровень подготовки: {profile.preparation_level}
-- Цели: {profile.goals or 'не указаны'}
+    last_err = None
+    for model in OPENROUTER_MODELS:
+        try:
+            response = ai_client.chat.completions.create(
+                model=model,
+                max_tokens=400,
+                messages=[{"role": "user", "content": prompt}],
+                timeout=15,
+            )
+            text = (response.choices[0].message.content or "").strip()
+            if text:
+                logger.info("AI justify OK via %s", model)
+                return text
+        except Exception as e:
+            last_err = e
+            code = getattr(e, "status_code", None)
+            logger.warning("AI justify failed (%s) model=%s: %s", code, model, str(e)[:120])
+            # Только rate-limit (429) и 404 заслуживают попытки со следующей моделью;
+            # на 5xx тоже пробуем дальше
+            continue
 
-Олимпиада:
-- Название: {olympiad.get('name')}
-- Организатор: {olympiad.get('organizer') or 'не указан'}
-- Уровень: {olympiad.get('level') or 'не указан'}
-- Сложность: {olympiad.get('difficulty') or 'не указана'}
-- Тип: {olympiad.get('type')}
-- Предметы: {', '.join(olympiad.get('subjects') or [])}
-- Онлайн: {'да' if olympiad.get('online') else 'нет/частично'}
-- Награды: {olympiad.get('prize') or 'не указаны'}
-- Описание: {olympiad.get('description') or 'не указано'}
-
-Напиши короткое (3-4 предложения) персонализированное обоснование.
-"""
-
-    try:
-        response = ai_client.chat.completions.create(
-            model=OPENROUTER_MODEL,
-            max_tokens=400,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        return (
-            response.choices[0].message.content
-            or _generate_fallback_justification(olympiad, profile)
-        )
-    except Exception:
-        return _generate_fallback_justification(olympiad, profile)
+    logger.error("All AI models failed. Last error: %s", last_err)
+    return _generate_fallback_justification(olympiad, profile)
 
 
 def _generate_fallback_justification(olympiad: dict, profile: StudentProfile) -> str:

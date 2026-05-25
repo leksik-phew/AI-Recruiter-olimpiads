@@ -141,10 +141,6 @@ export default function ProfileForm({ meta, onSubmit, loading, initialProfile }:
   return (
     <main className="app-shell">
       <section className="entry-hero">
-        <div className="entry-hero__eyebrow">
-          <span className="entry-hero__stamp">Olymp Dossier</span>
-        </div>
-
         <div className="entry-hero__grid">
           <div className="entry-hero__copy">
             <p className="kicker">Персональная навигация по олимпиадам</p>

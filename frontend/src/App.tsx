@@ -106,7 +106,7 @@ export default function App() {
       <main className="app-shell app-shell--center">
         <section className="status-card">
           <div className="orb-loader" />
-          <div className="status-card__badge">Olymp Dossier</div>
+          <div className="status-card__badge">Загрузка</div>
           <h1>Собираем сезонный профиль</h1>
           <p>Подгружаем предметы, регионы и параметры для персональной траектории.</p>
         </section>
