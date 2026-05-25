@@ -18,7 +18,7 @@ interface Props {
 }
 
 const STEPS = [
-  { icon: UserRound, label: 'Кто ты', caption: 'Имя и класс' },
+  { icon: UserRound, label: 'Знакомство', caption: 'Имя и класс' },
   { icon: BookOpen, label: 'Профиль', caption: 'Предметы и уровень' },
   { icon: MapPin, label: 'Регион', caption: 'География участия' },
   { icon: Target, label: 'Фокус', caption: 'Зачем тебе сезон' },
@@ -187,7 +187,7 @@ export default function ProfileForm({ meta, onSubmit, loading }: Props) {
                     type="text"
                     value={profile.name}
                     onChange={(event) => update('name', event.target.value)}
-                    placeholder="Например, Алина"
+                    placeholder="Твоё имя"
                   />
                 </label>
 
