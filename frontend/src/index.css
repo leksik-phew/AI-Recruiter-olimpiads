@@ -1204,6 +1204,61 @@ a {
   gap: 16px;
 }
 
+/* ── Вкладки месяцев ── */
+.calendar-month-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 4px 0 8px;
+}
+
+.calendar-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: rgba(255, 255, 255, 0.45);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.18s;
+  min-width: 52px;
+}
+
+.calendar-tab:hover {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--periwinkle);
+  color: var(--text);
+}
+
+.calendar-tab--active {
+  background: var(--periwinkle);
+  border-color: var(--lavender-grey);
+  color: var(--chocolate-plum);
+}
+
+.calendar-tab__month {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.calendar-tab__year {
+  font-size: 10px;
+  opacity: 0.65;
+}
+
+.calendar-tab__count {
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(93, 66, 65, 0.12);
+  border-radius: 20px;
+  padding: 0 5px;
+  margin-top: 2px;
+}
+
 .calendar-month {
   padding: 20px;
   background: linear-gradient(160deg, rgba(255, 255, 255, 0.58), rgba(240, 234, 251, 0.7));
