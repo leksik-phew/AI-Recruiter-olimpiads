@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "serve dist"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.0",
@@ -15,6 +16,7 @@
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
+    "serve": "^14.2.0",
     "tailwindcss": "^4.3.0"
   },
   "devDependencies": {
