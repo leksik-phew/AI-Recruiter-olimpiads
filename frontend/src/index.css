@@ -578,23 +578,24 @@ a {
 }
 
 .level-card {
-  display: grid;
-  gap: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 94px;
   padding: 16px;
   border: 1px solid rgba(93, 66, 65, 0.12);
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.58);
-  text-align: left;
+  text-align: center;
 }
 
 .level-card span {
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   color: var(--text);
 }
 
 .level-card small {
-  color: var(--muted);
+  display: none;
 }
 
 .level-card.is-active,
