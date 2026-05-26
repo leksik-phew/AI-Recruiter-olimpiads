@@ -30,7 +30,7 @@ function getSourceLabel(olympiad: Olympiad): string {
     try {
       return new URL(olympiad.url).hostname.replace('www.', '');
     } catch {
-      return olympiad.url.split('/').slice(0, 3).join('/').replace(/https?:\/\
+      return olympiad.url.split('/').slice(0, 3).join('/').replace(/https?:\/\//, '');
     }
   }
   return '';
