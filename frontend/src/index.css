@@ -1215,7 +1215,7 @@ a {
 /* ── Вкладки месяцев ── */
 .calendar-month-tabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   padding: 4px 0 8px;
   overflow-x: auto;
@@ -1884,6 +1884,10 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .insight-card--wide {
+    grid-column: 1;
+  }
+
   .stepper,
   .stat-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1891,6 +1895,19 @@ a {
 
   .field-grid--three {
     grid-template-columns: 1fr;
+  }
+
+  /* Срез — месячные бары: горизонтальный скролл */
+  .month-bars {
+    grid-template-columns: repeat(12, minmax(40px, 1fr));
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 8px;
+    scrollbar-width: thin;
+  }
+
+  .month-bars__track {
+    height: 72px;
   }
 }
 
