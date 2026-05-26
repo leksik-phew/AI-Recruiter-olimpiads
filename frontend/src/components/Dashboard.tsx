@@ -410,7 +410,7 @@ export default function Dashboard({ data, onReset }: Props) {
                     const month = index + 1;
                     const count = calendar.filter((e) => e.month === month).length;
                     const height = count > 0 ? Math.max(14, Math.min(88, count * 14)) : 8;
-                    const labels = ['Я', 'Ф', 'М', 'А', 'М', 'И', 'И', 'А', 'С', 'О', 'Н', 'Д'];
+                    const labels = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
                     return (
                       <div key={month} className="month-bars__item">
                         <div className="month-bars__track">
