@@ -167,7 +167,7 @@ export default function CalendarView({ events }: Props) {
                 className={`calendar-tab${isActive ? ' calendar-tab--active' : ''}`}
                 onClick={() => setActiveKey(key)}
               >
-                <span className="calendar-tab__month">{MONTHS_SHORT[m]}</span>
+                <span className="calendar-tab__month">{MONTHS_FULL[m]}</span>
                 <span className="calendar-tab__year">{y}</span>
                 <span className="calendar-tab__count">{count}</span>
               </button>

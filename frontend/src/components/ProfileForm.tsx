@@ -140,20 +140,16 @@ export default function ProfileForm({ meta, onSubmit, loading, initialProfile }:
 
   return (
     <main className="app-shell">
-      <section className="entry-hero">
-        <div className="entry-hero__grid">
-          <div className="entry-hero__copy">
-            <p className="kicker">Персональная навигация по олимпиадам</p>
-            <h1>Олимпиадный кабинет, помогающий с подбором и отслеживанием мероприятий</h1>
-            <p className="entry-hero__lead">
-              Анкета не просто фильтрует список, а собирает профиль школьника, чтобы дальше
-              показывать живые рекомендации и календарь сезона.
-            </p>
-          </div>
-        </div>
-      </section>
+      <div className="entry-layout">
+        <section className="entry-hero entry-hero--compact">
+          <p className="kicker">Персональная навигация по олимпиадам</p>
+          <h1 className="entry-hero__title">Олимпиадный кабинет</h1>
+          <p className="entry-hero__lead">
+            Собираем профиль школьника — подбираем олимпиады и строим календарь сезона.
+          </p>
+        </section>
 
-      <section className="form-frame">
+        <section className="form-frame">
         <div className="stepper">
           {STEPS.map(({ icon: Icon, label, caption }, index) => {
             const state =
@@ -367,6 +363,7 @@ export default function ProfileForm({ meta, onSubmit, loading, initialProfile }:
           </footer>
         </div>
       </section>
+      </div>
     </main>
   );
 }

@@ -221,6 +221,40 @@ a {
   animation: spin 0.95s linear infinite;
 }
 
+/* ── Горизонтальный layout: hero + форма рядом ── */
+.entry-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.entry-hero--compact {
+  position: sticky;
+  top: 24px;
+}
+
+.entry-layout .entry-hero {
+  margin-bottom: 0;
+}
+
+.entry-hero--compact .entry-hero__title {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 12px 0 0;
+  max-width: 16ch;
+}
+
+@media (max-width: 700px) {
+  .entry-layout {
+    grid-template-columns: 1fr;
+  }
+  .entry-hero--compact {
+    position: static;
+  }
+}
+
 .entry-hero,
 .dashboard-hero {
   padding: 24px;
