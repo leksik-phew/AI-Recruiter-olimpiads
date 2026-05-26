@@ -1914,11 +1914,43 @@ a {
   .entry-hero__eyebrow,
   .dashboard-hero__topline,
   .panel-section__head,
-  .calendar-month__head,
-  .form-actions,
-  .olympiad-card__top {
+  .calendar-month__head {
     flex-direction: column;
     align-items: start;
+  }
+
+  /* Кнопки назад/далее — по разные стороны на мобиле */
+  .form-actions {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  /* Карточка олимпиады — rank+контент, потом match-badge снизу */
+  .olympiad-card__top {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+  }
+
+  .match-badge {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    padding: 10px 14px;
+    min-width: unset;
+    border-radius: 14px;
+    margin-top: 2px;
+  }
+
+  .match-badge strong {
+    font-size: 1.3rem;
+    margin-top: 0;
+  }
+
+  .match-badge span {
+    font-size: 0.7rem;
   }
 
   .stepper,
@@ -1947,7 +1979,13 @@ a {
   }
 
   .month-bars {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(12, minmax(36px, 1fr));
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .month-bars__track {
+    height: 72px;
   }
 }
 
@@ -1973,6 +2011,67 @@ a {
   }
 
   .tabbar__item {
-    flex: 1 1 100%;
+    flex: 1 1 calc(50% - 10px);
+  }
+
+  /* Карточка олимпиады: rank меньше, текст не обрезается */
+  .rank-pill {
+    width: 40px;
+    height: 40px;
+    font-size: 0.85rem;
+    border-radius: 14px;
+  }
+
+  .olympiad-card__top {
+    gap: 10px;
+  }
+
+  .olympiad-card h3 {
+    font-size: 1rem;
+  }
+
+  .detail-pills {
+    gap: 5px;
+  }
+
+  .detail-pill {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+
+  .stage-pill {
+    min-width: unset;
+    width: 100%;
+  }
+
+  /* Кнопки */
+  .button-primary,
+  .button-secondary {
+    font-size: 0.85rem;
+    padding: 10px 14px;
+    gap: 6px;
+  }
+
+  /* Шапка дашборда компактнее */
+  .dashboard-hero__topline {
+    gap: 8px;
+  }
+
+  .stat-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  /* Insight карточки */
+  .insight-card {
+    padding: 16px;
+  }
+
+  .meter-row__label span {
+    font-size: 0.78rem;
   }
 }
