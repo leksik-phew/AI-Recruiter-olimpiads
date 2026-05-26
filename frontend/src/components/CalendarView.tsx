@@ -41,12 +41,10 @@ function getPriorityLabel(priority: CalendarEvent['priority']) {
   return 'спокойно';
 }
 
-/** Строим сетку: массив недель, каждая неделя — 7 ячеек (null = пусто) */
 function buildMonthGrid(year: number, month: number): (number | null)[][] {
   const firstDay = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
 
-  // JS: 0=вс, 1=пн … → переводим в 0=пн … 6=вс
   let startDow = firstDay.getDay();
   startDow = startDow === 0 ? 6 : startDow - 1;
 
@@ -71,7 +69,6 @@ export default function CalendarView({ events }: Props) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  // Группируем по месяцу
   const grouped: Record<string, CalendarEvent[]> = {};
   for (const event of events) {
     const key = `${event.year}-${String(event.month).padStart(2, '0')}`;
@@ -93,7 +90,6 @@ export default function CalendarView({ events }: Props) {
 
   const monthGrid = activeYear ? buildMonthGrid(activeYear, activeMonth) : [];
 
-  // Индекс событий по дню: { day -> events[] }
   const eventsByDay: Record<number, CalendarEvent[]> = {};
   for (const ev of grouped[activeKey] ?? []) {
     eventsByDay[ev.day] = eventsByDay[ev.day]
@@ -101,7 +97,6 @@ export default function CalendarView({ events }: Props) {
       : [ev];
   }
 
-  // Сайдбар: ближайшие 4 события
   const upcoming = events
     .slice()
     .sort((a, b) => buildDate(a).getTime() - buildDate(b).getTime())
@@ -134,7 +129,7 @@ export default function CalendarView({ events }: Props) {
 
   return (
     <div className="calendar-layout">
-      {/* ── Сайдбар ──────────────────────────────────────────── */}
+
       <aside className="calendar-sidecard">
         <div className="calendar-sidecard__title">
           <AlertCircle size={16} />
@@ -165,10 +160,8 @@ export default function CalendarView({ events }: Props) {
         </div>
       </aside>
 
-      {/* ── Основная часть ───────────────────────────────────── */}
       <div className="calendar-timeline">
 
-        {/* Вкладки месяцев */}
         <div className="calendar-month-tabs">
           {sortedKeys.map((key) => {
             const [y, m] = key.split('-').map(Number);
@@ -189,7 +182,6 @@ export default function CalendarView({ events }: Props) {
           })}
         </div>
 
-        {/* Сетка календаря */}
         <section className="calendar-month">
           <header className="calendar-month__head">
             <div>
@@ -199,13 +191,11 @@ export default function CalendarView({ events }: Props) {
             <span>{(grouped[activeKey] ?? []).length} этапов</span>
           </header>
 
-          {/* Шапка дней недели */}
           <div className="cal-grid">
             {WEEK_DAYS.map((d) => (
               <div key={d} className="cal-weekday">{d}</div>
             ))}
 
-            {/* Ячейки дней */}
             {monthGrid.map((week, wi) =>
               week.map((day, di) => {
                 if (day === null) {
@@ -260,7 +250,6 @@ export default function CalendarView({ events }: Props) {
             )}
           </div>
 
-          {/* Детали выбранного дня */}
           {selectedDay !== null && selectedEvents.length > 0 && (
             <div className="cal-detail">
               <div className="cal-detail__header">

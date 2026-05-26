@@ -26,7 +26,6 @@ HEADERS = {
     "Accept-Language": "ru-RU,ru;q=0.9",
 }
 
-# ── Всероссийская олимпиада школьников ──────────────────────────────────────
 VSOSH_SUBJECTS = [
     "математика", "физика", "химия", "биология", "информатика",
     "история", "обществознание", "литература", "русский язык",
@@ -35,7 +34,6 @@ VSOSH_SUBJECTS = [
     "право", "экология", "астрономия", "технология", "физическая культура",
     "ОБЖ", "искусство (МХК)",
 ]
-
 
 def fetch_vsosh() -> list[dict[str, Any]]:
     """
@@ -49,10 +47,10 @@ def fetch_vsosh() -> list[dict[str, Any]]:
         items.append({
             "name": f"Всероссийская олимпиада школьников по {subject.lower()}",
             "url": "https://vserosolymp.rudn.ru/",
-            "level": None,  # ВсОШ не входит в Перечень РСОШ, отдельная категория
+            "level": None,
             "source": "vsosh / Минпросвещения",
             "subjects": [subject],
-            "grades": list(range(9, 12)),  # 9-11 класс в финале
+            "grades": list(range(9, 12)),
             "type": "всероссийская олимпиада",
             "description": (
                 "Всероссийская олимпиада школьников (ВсОШ) — крупнейшая академическая "
@@ -68,7 +66,6 @@ def fetch_vsosh() -> list[dict[str, Any]]:
             ],
         })
     return items
-
 
 def fetch_edu_gov_list() -> list[dict[str, Any]]:
     """
@@ -123,7 +120,6 @@ def fetch_edu_gov_list() -> list[dict[str, Any]]:
     print(f"[МинПрос] Итого: {len(all_items)} записей")
     return all_items
 
-
 def fetch_regional_olympiads() -> list[dict[str, Any]]:
     """
     Список региональных олимпиадных порталов.
@@ -163,30 +159,25 @@ def fetch_regional_olympiads() -> list[dict[str, Any]]:
     ]
     return REGIONAL_SOURCES
 
-
 def fetch_all_minpros() -> list[dict[str, Any]]:
     """Агрегирует все источники Минпросвещения и региональных порталов."""
     result = []
 
-    # 1. ВсОШ (статические данные)
     vsosh = fetch_vsosh()
     result.extend(vsosh)
     print(f"[МинПрос] ВсОШ: {len(vsosh)} предметов")
 
-    # 2. edu.gov.ru
     try:
         edu = fetch_edu_gov_list()
         result.extend(edu)
     except Exception as e:
         print(f"[МинПрос] edu.gov.ru недоступен: {e}")
 
-    # 3. Региональные источники (мета-список для дальнейшего парсинга)
     regional = fetch_regional_olympiads()
     result.extend(regional)
     print(f"[МинПрос] Региональных источников: {len(regional)}")
 
     return result
-
 
 if __name__ == "__main__":
     import json

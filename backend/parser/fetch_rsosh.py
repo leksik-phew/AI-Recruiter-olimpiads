@@ -25,17 +25,14 @@ HEADERS = {
     "Accept-Language": "ru-RU,ru;q=0.9",
 }
 
-# Приказ Минпросвещения — резервный URL (когда обновляется список)
 MINPROS_PERECHEN_URL = (
     "https://docs.edu.gov.ru/document/doc/perechen-olimpiad"
 )
-
 
 def _safe_text(node) -> str:
     if not node:
         return ""
     return node.get_text(" ", strip=True)
-
 
 def _parse_level(text: str) -> int | None:
     """Извлекает уровень РСОШ (I=1, II=2, III=3) из текста."""
@@ -49,7 +46,6 @@ def _parse_level(text: str) -> int | None:
         if raw in ('III', '3'):
             return 3
     return None
-
 
 def fetch_rsosh_list(max_pages: int = 20) -> list[dict[str, Any]]:
     """
@@ -78,7 +74,6 @@ def fetch_rsosh_list(max_pages: int = 20) -> list[dict[str, Any]]:
 
         soup = BeautifulSoup(r.text, "html.parser")
 
-        # Ищем ссылки на олимпиады (варианты CSS-структур rsr-olymp.ru)
         items_found = 0
         for link in soup.select("a[href*='/olimpiads/'], a[href*='/olympiad/']"):
             href = link.get("href", "")
@@ -91,7 +86,6 @@ def fetch_rsosh_list(max_pages: int = 20) -> list[dict[str, Any]]:
                 continue
             seen_urls.add(full_url)
 
-            # Попробуем найти уровень рядом с ссылкой
             parent = link.find_parent(["tr", "li", "div", "article"])
             level_text = _safe_text(parent) if parent else name
             level = _parse_level(level_text)
@@ -104,7 +98,6 @@ def fetch_rsosh_list(max_pages: int = 20) -> list[dict[str, Any]]:
             })
             items_found += 1
 
-        # Также ищем строки таблицы — часто сайты РСОШ используют таблицы
         for row in soup.select("table tr"):
             cells = row.find_all(["td", "th"])
             if len(cells) < 2:
@@ -116,7 +109,6 @@ def fetch_rsosh_list(max_pages: int = 20) -> list[dict[str, Any]]:
             level_str = _safe_text(cells[-1]) if len(cells) > 2 else ""
             level = _parse_level(level_str)
 
-            # Ищем URL в строке
             a = row.find("a")
             href = a.get("href", "") if a else ""
             if not href:
@@ -143,7 +135,6 @@ def fetch_rsosh_list(max_pages: int = 20) -> list[dict[str, Any]]:
 
     print(f"[РСОШ] Итого: {len(all_items)} олимпиад")
     return all_items
-
 
 if __name__ == "__main__":
     items = fetch_rsosh_list()

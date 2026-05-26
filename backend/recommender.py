@@ -13,9 +13,6 @@ except Exception:
 from datetime import date
 from typing import List, Dict, Any, Tuple, Optional
 
-# ──────────────────────────────────────────────────────────────
-# Цель → тип олимпиады (автофильтр)
-# ──────────────────────────────────────────────────────────────
 GOAL_TYPE_RULES: Dict[str, Dict] = {
     "Поступление в сильный вуз": {
         "allowed_types": ["олимпиада"],
@@ -29,7 +26,6 @@ GOAL_TYPE_RULES: Dict[str, Dict] = {
     },
 }
 
-# Ключевые слова для извлечения предметов из названия (когда subjects пустой)
 SUBJECT_KEYWORDS: Dict[str, str] = {
     "матем":     "математика",
     "физик":     "физика",
@@ -61,7 +57,6 @@ SUBJECT_KEYWORDS: Dict[str, str] = {
     "правов":    "право",
 }
 
-
 def _get_olympiad_effective_subjects(olympiad: Dict) -> set:
     """Возвращает множество предметов олимпиады (из данных + из названия)."""
     subjects = set(olympiad.get("subjects") or [])
@@ -74,7 +69,6 @@ def _get_olympiad_effective_subjects(olympiad: Dict) -> set:
             if kw in text:
                 subjects.add(subj)
     return subjects
-
 
 def _get_primary_subjects(olympiad: Dict) -> set:
     """
@@ -93,7 +87,6 @@ def _get_primary_subjects(olympiad: Dict) -> set:
             primary.add(subj)
     return primary
 
-
 def _build_auto_filters(profile: Dict) -> Dict:
     """
     Составляет набор автофильтров на основе профиля.
@@ -104,7 +97,6 @@ def _build_auto_filters(profile: Dict) -> Dict:
     grade = profile.get("grade", 9)
     prefer_online = profile.get("prefer_online", False)
 
-    # Тип по цели
     goal_rule = GOAL_TYPE_RULES.get(goal)
     allowed_types = goal_rule["allowed_types"] if goal_rule else None
 
@@ -127,7 +119,6 @@ def _build_auto_filters(profile: Dict) -> Dict:
         "badges": badges,
     }
 
-
 def compute_content_score(olympiad: Dict, profile: Dict) -> float:
     """
     Вычисляет сырую релевантность олимпиады для профиля.
@@ -137,22 +128,6 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
     student_subjects = set(profile.get("subjects") or [])
     olympiad_subjects = _get_olympiad_effective_subjects(olympiad)
 
-    # 1. Совпадение предметов (вес 0.55)
-    #
-    # Стратегия двухуровневого матчинга:
-    #
-    # • Если название олимпиады раскрывает её основной предмет (содержит ключевые слова) —
-    #   используем «первичное/вторичное» разделение:
-    #     subject_score = primary_recall + secondary_overlap * 0.30
-    #   Пример: «Олимпиада по физике» (primary=физика) при student=[физика,матем]
-    #     → primary_recall = 1/2 = 0.5, secondary = 1*0.30/2 = 0.15 → total 0.65
-    #
-    # • Если название не несёт предметной информации (engineering/technology/general) —
-    #   используем F1 (harmonic mean recall×precision), чтобы широкие олимпиады
-    #   с 4–5 предметами не получали искусственно высокий балл:
-    #     F1 = 2·recall·precision / (recall+precision)
-    #   Пример: «Инженерная олимпиада» (4 субj, 2 совпадают) → precision=0.5
-    #     F1 = 2·1.0·0.5/1.5 = 0.67 < 1.0 ✓
     primary_subjects = _get_primary_subjects(olympiad)
 
     if primary_subjects:
@@ -165,7 +140,7 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
         else:
             subject_score = 0.5
     else:
-        # Название не раскрывает предмет → F1 по всем subjects
+
         n_overlap  = len(student_subjects & olympiad_subjects)
         recall     = n_overlap / max(len(student_subjects), 1)
         precision  = n_overlap / max(len(olympiad_subjects), 1)
@@ -174,7 +149,6 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
 
     score += subject_score * 0.55
 
-    # 2. Совпадение тегов (вес 0.15)
     tag_score = 0.0
     for subject in student_subjects:
         subject_tags = set(olympiad_data.SUBJECT_TAGS.get(subject, []))
@@ -185,7 +159,6 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
     tag_score = min(tag_score / max(len(student_subjects), 1), 1.0)
     score += tag_score * 0.15
 
-    # 3. Уровень подготовки vs. сложность (вес 0.15)
     prep_level = olympiad_data.PREPARATION_LEVELS.get(
         profile.get("preparation_level", "средний"), 0.6
     )
@@ -202,13 +175,11 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
         level_score = 0.3
     score += level_score * 0.15
 
-    # 4. Онлайн-формат (вес 0.05)
     if profile.get("prefer_online") and olympiad.get("online"):
         score += 0.05
     elif not profile.get("prefer_online") and not olympiad.get("online"):
-        score += 0.025  # небольшой бонус, но не такой же вес
+        score += 0.025
 
-    # 5. Уровень РСОШ (вес 0.10): чем выше статус — тем лучше для поступления
     rsosh_level = olympiad.get("level")
     goal = profile.get("goals", "")
     if rsosh_level == 1:
@@ -220,12 +191,10 @@ def compute_content_score(olympiad: Dict, profile: Dict) -> float:
     else:
         level_bonus = 0.2
 
-    # Если цель — поступление/БВИ, уровень РСОШ особо важен
     rsosh_weight = 0.12 if "поступлен" in goal.lower() or "вуз" in goal.lower() else 0.05
     score += level_bonus * rsosh_weight
 
     return min(score, 1.0)
-
 
 def rank_olympiads(profile: Dict, top_n: int = None) -> Tuple[List[Dict], Dict]:
     """
@@ -244,58 +213,48 @@ def rank_olympiads(profile: Dict, top_n: int = None) -> Tuple[List[Dict], Dict]:
     scored = []
 
     for olympiad in olympiad_data.OLYMPIADS:
-        # ── Жёсткий фильтр: тип по цели ──────────────────────────
+
         if allowed_types and olympiad.get("type") not in allowed_types:
             continue
 
-        # ── Жёсткий фильтр: класс ─────────────────────────────────
         grades = olympiad.get("grades") or []
         if grades and grade not in grades:
             continue
 
-        # ── Жёсткий фильтр: предметы ─────────────────────────────
         if student_subjects:
             olympiad_subjects = _get_olympiad_effective_subjects(olympiad)
             overlap = student_subjects & olympiad_subjects
             if not overlap:
                 continue
 
-            # Отсеиваем «случайные» совпадения: если совпадающие предметы занимают
-            # менее 20% всех предметов олимпиады И название не подтверждает тематику.
-            # Это убирает, например, языковые олимпиады с математикой как доп. треком
-            # из подборки студента, выбравшего только математику.
             primary = _get_primary_subjects(olympiad)
             primary_overlap = student_subjects & primary
             overlap_fraction = len(overlap) / max(len(olympiad_subjects), 1)
             if not primary_overlap and overlap_fraction <= 0.20:
                 continue
 
-        # ── Подсчёт очков ─────────────────────────────────────────
         score = compute_content_score(olympiad, profile)
 
         scored.append({
             **olympiad,
-            "_raw_score": score,  # для нормализации
+            "_raw_score": score,
             "recommendation_score": round(score, 3),
             "match_reasons": generate_match_reasons(olympiad, profile, score),
         })
 
     scored.sort(key=lambda x: x["_raw_score"], reverse=True)
 
-    # ── Нормализация: лучший матч = 1.0 (100%) ────────────────────
     if scored:
         max_raw = scored[0]["_raw_score"]
         if max_raw > 0:
             for item in scored:
                 item["recommendation_score"] = round(item["_raw_score"] / max_raw, 3)
 
-    # Убираем служебное поле
     for item in scored:
         item.pop("_raw_score", None)
 
     result = scored[:top_n] if top_n is not None else scored
     return result, auto_filters
-
 
 def generate_match_reasons(olympiad: Dict, profile: Dict, score: float) -> List[str]:
     """Генерирует текстовые причины совпадения."""
@@ -328,12 +287,10 @@ def generate_match_reasons(olympiad: Dict, profile: Dict, score: float) -> List[
 
     return reasons
 
-
 def _get_current_academic_year_start(today: Optional[date] = None) -> int:
     """Return the season start year used for upcoming olympiad deadlines."""
     today = today or date.today()
     return today.year if today.month >= 5 else today.year - 1
-
 
 def build_calendar(ranked_olympiads: List[Dict], academic_year_start: Optional[int] = None) -> List[Dict]:
     """Строит календарь этапов с диапазонами дат на учебный год."""

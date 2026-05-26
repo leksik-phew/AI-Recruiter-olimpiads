@@ -26,8 +26,6 @@ try:
 except Exception:
     from backend import olympiad_data
 
-# ──────────────── ENV ────────────────
-
 load_dotenv()
 
 _api_key = os.getenv("OPENROUTER_API_KEY", "")
@@ -38,7 +36,6 @@ ai_client = OpenAI(
     api_key=_api_key or "no-key",
 )
 
-# Основная модель + очередь запасных на случай rate-limit (429) или недоступности
 OPENROUTER_MODELS = [
     "openai/gpt-oss-20b:free",
     "openai/gpt-oss-120b:free",
@@ -46,8 +43,6 @@ OPENROUTER_MODELS = [
     "nvidia/nemotron-3-super-120b-a12b:free",
     "google/gemma-4-26b-a4b-it:free",
 ]
-
-# ──────────────── APP ────────────────
 
 app = FastAPI(title="AI-Рекрутер олимпиад", version="1.0.0")
 
@@ -59,8 +54,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ──────────────── MODELS ────────────────
-
 class StudentProfile(BaseModel):
     name: str
     grade: int
@@ -70,13 +63,9 @@ class StudentProfile(BaseModel):
     prefer_online: bool = False
     goals: Optional[str] = ""
 
-
 class JustificationRequest(BaseModel):
     profile: StudentProfile
     olympiad_id: str
-
-
-# ──────────────── ENDPOINTS ────────────────
 
 @app.get("/api/meta")
 def get_meta():
@@ -88,7 +77,6 @@ def get_meta():
         "grades":             GRADES,
     }
 
-
 @app.get("/api/olympiads")
 def get_all_olympiads():
     """Все олимпиады из normalized.json без фильтрации."""
@@ -96,7 +84,6 @@ def get_all_olympiads():
         "olympiads": olympiad_data.OLYMPIADS,
         "total":     len(olympiad_data.OLYMPIADS),
     }
-
 
 @app.post("/api/recommend")
 def recommend(profile: StudentProfile):
@@ -115,7 +102,6 @@ def recommend(profile: StudentProfile):
         "applied_filters":  applied_filters,
     }
 
-
 @app.post("/api/justify")
 def justify(req: JustificationRequest):
     olympiad = next(
@@ -132,7 +118,6 @@ def justify(req: JustificationRequest):
 
     return {"justification": justification, "olympiad_id": req.olympiad_id}
 
-
 @app.post("/api/reload-data")
 def api_reload_data():
     """Перезагрузить normalized.json в память без перезапуска сервера."""
@@ -141,9 +126,6 @@ def api_reload_data():
         return {"status": "ok", "count": count}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# ──────────────── AI LOGIC ────────────────
 
 import logging
 logger = logging.getLogger("uvicorn.error")
@@ -189,13 +171,11 @@ def _generate_ai_justification(olympiad: dict, profile: StudentProfile) -> str:
             last_err = e
             code = getattr(e, "status_code", None)
             logger.warning("AI justify failed (%s) model=%s: %s", code, model, str(e)[:120])
-            # Только rate-limit (429) и 404 заслуживают попытки со следующей моделью;
-            # на 5xx тоже пробуем дальше
+
             continue
 
     logger.error("All AI models failed. Last error: %s", last_err)
     return _generate_fallback_justification(olympiad, profile)
-
 
 def _generate_fallback_justification(olympiad: dict, profile: StudentProfile) -> str:
     subjects_str = ", ".join(profile.subjects) if profile.subjects else "выбранным предметам"
@@ -204,9 +184,6 @@ def _generate_fallback_justification(olympiad: dict, profile: StudentProfile) ->
         f"{profile.name}, олимпиада «{olympiad_name}» может подойти тебе "
         f"по {subjects_str}. Переходи на сайт, чтобы узнать условия участия."
     )
-
-
-# ──────────────── RUN ────────────────
 
 if __name__ == "__main__":
     import uvicorn

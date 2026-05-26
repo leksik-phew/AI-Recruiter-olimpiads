@@ -18,7 +18,6 @@ interface Props {
   initialProfile?: StudentProfile;
 }
 
-// Резервный список предметов, если сервер вернул пустой список
 const FALLBACK_SUBJECTS = [
   'математика',
   'физика',

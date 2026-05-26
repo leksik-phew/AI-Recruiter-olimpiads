@@ -21,16 +21,16 @@ interface Props {
 const MONTHS = ['', 'янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
 
 function getSourceLabel(olympiad: Olympiad): string {
-  // Если есть явный source — используем его
+
   if (olympiad.source) {
     return olympiad.source.split('/')[0].trim();
   }
-  // Иначе берём hostname из url
+
   if (olympiad.url) {
     try {
       return new URL(olympiad.url).hostname.replace('www.', '');
     } catch {
-      return olympiad.url.split('/').slice(0, 3).join('/').replace(/https?:\/\//, '');
+      return olympiad.url.split('/').slice(0, 3).join('/').replace(/https?:\/\
     }
   }
   return '';

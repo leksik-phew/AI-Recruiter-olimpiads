@@ -56,9 +56,6 @@ function escapeCsvCell(value: string | number | boolean | null | undefined): str
   return str;
 }
 
-// ────────────────────────────────────────────
-// Рекомендательные метки на основе профиля
-// ────────────────────────────────────────────
 function getRecommendLabel(score: number): { label: string; className: string } {
   if (score >= 0.8) return { label: '⭐ Точное совпадение', className: 'rec-label--perfect' };
   if (score >= 0.6) return { label: '✓ Хорошо подходит', className: 'rec-label--good' };
@@ -66,9 +63,6 @@ function getRecommendLabel(score: number): { label: string; className: string } 
   return { label: 'Общий интерес', className: 'rec-label--neutral' };
 }
 
-// ────────────────────────────────────────────
-// Иконки для авто-фильтр бейджей
-// ────────────────────────────────────────────
 function FilterBadgeIcon({ icon }: { icon: string }) {
   if (icon === 'grade') return <GraduationCap size={13} />;
   if (icon === 'subjects') return <BookOpen size={13} />;
@@ -102,7 +96,6 @@ export default function Dashboard({ data, onReset }: Props) {
 
   const { profile, recommendations, calendar, applied_filters, total_found } = data;
 
-  // ── Статистика шапки ─────────────────────────────────────────
   const highLevelCount = useMemo(() => recommendations.filter((r) => r.level === 1).length, [recommendations]);
   const onlineCount = useMemo(() => recommendations.filter((r) => r.online).length, [recommendations]);
   const topMatch = useMemo(
@@ -110,7 +103,6 @@ export default function Dashboard({ data, onReset }: Props) {
     [recommendations],
   );
 
-  // ── Экспорт ──────────────────────────────────────────────────
   const downloadCSV = () => {
     const headers = [
       '№', 'Название', 'Организатор', 'Тип', 'Уровень', 'Сложность',
@@ -174,7 +166,7 @@ export default function Dashboard({ data, onReset }: Props) {
 
   return (
     <main className="app-shell">
-      {/* ── Шапка дашборда ───────────────────────────────────── */}
+
       <section className="dashboard-hero">
         <div className="dashboard-hero__topline">
           <div className="entry-hero__eyebrow">
@@ -227,7 +219,6 @@ export default function Dashboard({ data, onReset }: Props) {
         </div>
       </section>
 
-      {/* ── Вкладки и контент ────────────────────────────────── */}
       <section className="dashboard-panel">
         <div className="tabbar">
           {tabs.map(({ id, label, count, icon: Icon }) => (
@@ -244,7 +235,6 @@ export default function Dashboard({ data, onReset }: Props) {
           ))}
         </div>
 
-        {/* ── РЕКОМЕНДАЦИИ ─────────────────────────────────── */}
         {tab === 'recommendations' && (
           <section className="panel-section">
             <div className="panel-section__head">
@@ -274,10 +264,8 @@ export default function Dashboard({ data, onReset }: Props) {
               </div>
             </div>
 
-            {/* Авто-фильтры — что было применено */}
             {applied_filters && <AutoFilterBadges filters={applied_filters} />}
 
-            {/* Рекомендательная плашка */}
             <div className="rec-hint">
               <Sparkles size={14} />
               <span>
@@ -311,7 +299,6 @@ export default function Dashboard({ data, onReset }: Props) {
           </section>
         )}
 
-        {/* ── КАЛЕНДАРЬ ────────────────────────────────────── */}
         {tab === 'calendar' && (
           <section className="panel-section">
             <div className="panel-section__head">
@@ -328,7 +315,6 @@ export default function Dashboard({ data, onReset }: Props) {
           </section>
         )}
 
-        {/* ── СТАТИСТИКА ───────────────────────────────────── */}
         {tab === 'stats' && (
           <section className="panel-section">
             <div className="panel-section__head">

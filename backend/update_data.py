@@ -21,7 +21,6 @@ BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
-
 def _load_normalized() -> list[dict]:
     p = DATA_DIR / "normalized.json"
     if p.exists():
@@ -29,22 +28,20 @@ def _load_normalized() -> list[dict]:
             return json.load(f)
     return []
 
-
 def _save_normalized(data: list[dict]):
     with open(DATA_DIR / "normalized.json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-
 def _deduplicate(items: list[dict]) -> list[dict]:
     """Удаляет дубликаты по URL (последний источник побеждает по данным)."""
     seen_urls: dict[str, dict] = {}
-    seen_ids: dict[str, int] = {}  # id -> index in seen_urls
+    seen_ids: dict[str, int] = {}
 
     for item in items:
         url = item.get("url", "")
         uid = item.get("id", "")
         if url and url in seen_urls:
-            # Объединяем: новый источник дополняет имеющиеся данные
+
             existing = seen_urls[url]
             for k, v in item.items():
                 if v and not existing.get(k):
@@ -53,7 +50,6 @@ def _deduplicate(items: list[dict]) -> list[dict]:
             seen_urls[url] = item
 
     return list(seen_urls.values())
-
 
 def fetch_from_olimpiada() -> list[dict]:
     """Загружает и нормализует данные с olimpiada.ru."""
@@ -82,7 +78,6 @@ def fetch_from_olimpiada() -> list[dict]:
     print(f"[olimpiada.ru] Нормализовано: {len(normalized)}")
     return normalized
 
-
 def fetch_from_rsosh() -> list[dict]:
     """Загружает данные с rsr-olymp.ru."""
     from parser.fetch_rsosh import fetch_rsosh_list
@@ -95,13 +90,12 @@ def fetch_from_rsosh() -> list[dict]:
         print(f"[rsr-olymp.ru] Найдено: {len(raw)}")
         if not raw:
             return []
-        # Нормализуем — у этих записей нет деталей, только базовая инфа
+
         normalized = normalize(raw)
         return normalized
     except Exception as e:
         print(f"[rsr-olymp.ru] Ошибка: {e}")
         return []
-
 
 def fetch_from_minpros() -> list[dict]:
     """Загружает данные из источников Минпросвещения."""
@@ -120,7 +114,6 @@ def fetch_from_minpros() -> list[dict]:
     except Exception as e:
         print(f"[Минпросвещения] Ошибка: {e}")
         return []
-
 
 def main():
     parser = argparse.ArgumentParser(description="Обновление базы олимпиад")
@@ -146,7 +139,6 @@ def main():
         items = fetch_from_minpros()
         all_normalized.extend(items)
 
-    # Дедупликация по URL
     print("─" * 50)
     before = len(all_normalized)
     all_normalized = _deduplicate(all_normalized)
@@ -155,14 +147,12 @@ def main():
     _save_normalized(all_normalized)
     print(f"✓ normalized.json обновлён: {len(all_normalized)} олимпиад")
 
-    # Если backend запущен — перезагружаем данные в памяти
     try:
         import olympiad_data
         olympiad_data.reload()
         print("✓ olympiad_data перезагружен в памяти")
     except Exception:
         pass
-
 
 if __name__ == "__main__":
     try:

@@ -22,11 +22,11 @@ export default function App() {
   const [meta, setMeta] = useState<MetaData | null>(null);
   const [result, setResult] = useState<RecommendResponse | null>(null);
   const [error, setError] = useState('');
-  // Читаем localStorage сразу — до первого рендера
+
   const [savedProfile, setSavedProfile] = useState<StudentProfile | null>(readSavedProfile);
 
   const handleSubmit = async (profile: StudentProfile) => {
-    // Сохраняем профиль — переживёт перезагрузку страницы
+
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     setSavedProfile(profile);
     setState('loading');
@@ -48,7 +48,7 @@ export default function App() {
     getMeta()
       .then((metaData) => {
         setMeta(metaData);
-        // Если есть сохранённый профиль — сразу загружаем дашборд
+
         const saved = readSavedProfile();
         if (saved) {
           handleSubmit(saved);
@@ -59,7 +59,7 @@ export default function App() {
           'Не удалось подключиться к серверу. Проверьте, что backend запущен на порту 8000.',
         );
       });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   if (error && !meta) {
     return (

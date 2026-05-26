@@ -1,15 +1,12 @@
 """Нормализация данных олимпиад из detail_cache в единый формат."""
 import re
 
-# ──────────── Маппинг месяцев (olimpiada.ru аббревиатуры) ────────────
 MONTH_MAP = {
     'янв': 1, 'фев': 2, 'мар': 3, 'апр': 4,
     'май': 5, 'июн': 6, 'июл': 7, 'авг': 8,
     'сен': 9, 'окт': 10, 'ноя': 11, 'дек': 12,
 }
 
-# ──────────── Маппинг предметов olimpiada.ru → стандарт проекта ────────────
-# Приводим названия olimpiada.ru к нашему стандартному регистру (нижний)
 SUBJECT_MAP: dict[str, str] = {
     'английский язык':  'английский язык',
     'астрономия':       'астрономия',
@@ -23,17 +20,16 @@ SUBJECT_MAP: dict[str, str] = {
     'немецкий язык':    'немецкий язык',
     'обществознание':   'обществознание',
     'право':            'право',
-    'робототехника':    'информатика',  # map to CS
+    'робототехника':    'информатика',
     'русский язык':     'русский язык',
     'физика':           'физика',
     'французский язык': 'французский язык',
     'химия':            'химия',
     'экология':         'экология',
     'экономика':        'экономика',
-    # subjects outside our standard list are skipped
+
 }
 
-# ──────────── Ключевые слова для извлечения предметов из названия ────────────
 SUBJECT_KEYWORDS: dict[str, str] = {
     'матем':    'математика',
     'физик':    'физика',
@@ -61,12 +57,10 @@ SUBJECT_KEYWORDS: dict[str, str] = {
     'филологии': 'литература',
 }
 
-
 def _normalize_subject(raw: str) -> str | None:
     """Приводит название предмета из olimpiada.ru к нашему стандарту."""
     key = raw.replace('\xa0', ' ').strip().lower()
     return SUBJECT_MAP.get(key)
-
 
 def _subjects_from_cache(raw_subjects: list[str]) -> list[str]:
     """Преобразует список предметов из кэша в наш стандарт."""
@@ -79,7 +73,6 @@ def _subjects_from_cache(raw_subjects: list[str]) -> list[str]:
             seen.add(mapped)
     return result
 
-
 def _subjects_from_text(text: str) -> list[str]:
     """Извлекает предметы из текста (название/описание) по ключевым словам."""
     text = text.lower()
@@ -90,7 +83,6 @@ def _subjects_from_text(text: str) -> list[str]:
             result.append(subj)
             seen.add(subj)
     return result
-
 
 def _parse_date(date_str: str) -> tuple[int | None, int | None, int | None, int | None]:
     """
@@ -106,7 +98,6 @@ def _parse_date(date_str: str) -> tuple[int | None, int | None, int | None, int 
     """
     s = date_str.replace('\xa0', ' ').strip()
 
-    # Диапазон с двумя месяцами: "15 окт...14 дек"
     m = re.match(r'(\d+)\s+([а-яёА-ЯЁ]+)\.\.\.(\d+)\s+([а-яёА-ЯЁ]+)', s)
     if m:
         sd, sm_str, ed, em_str = m.group(1), m.group(2), m.group(3), m.group(4)
@@ -115,7 +106,6 @@ def _parse_date(date_str: str) -> tuple[int | None, int | None, int | None, int 
         if sm and em:
             return int(sd), sm, int(ed), em
 
-    # Диапазон в одном месяце: "19...26 ноя"
     m = re.match(r'(\d+)\.\.\.(\d+)\s+([а-яёА-ЯЁ]+)', s)
     if m:
         sd, ed, mo_str = m.group(1), m.group(2), m.group(3)
@@ -123,7 +113,6 @@ def _parse_date(date_str: str) -> tuple[int | None, int | None, int | None, int 
         if mo:
             return int(sd), mo, int(ed), mo
 
-    # Одиночная дата: "6 фев"
     m = re.match(r'(\d+)\s+([а-яёА-ЯЁ]+)', s)
     if m:
         sd, mo_str = m.group(1), m.group(2)
@@ -132,7 +121,6 @@ def _parse_date(date_str: str) -> tuple[int | None, int | None, int | None, int 
             return int(sd), mo, None, None
 
     return None, None, None, None
-
 
 def _parse_stages(raw_stages: list[dict]) -> list[dict]:
     """Преобразует список этапов из кэша в нормализованный формат."""
@@ -143,7 +131,7 @@ def _parse_stages(raw_stages: list[dict]) -> list[dict]:
         start_day, start_month, end_day, end_month = _parse_date(date_str)
 
         if not start_month:
-            # Если не смогли распарсить — пропускаем
+
             continue
 
         result.append({
@@ -156,14 +144,13 @@ def _parse_stages(raw_stages: list[dict]) -> list[dict]:
         })
     return result
 
-
 def _detect_online(detail: dict) -> bool | None:
     """Определяет, доступна ли олимпиада онлайн."""
     fmt = (detail.get('format') or '').lower()
     if 'онлайн' in fmt or 'заочн' in fmt:
         return True
     if 'очн' in fmt or 'личн' in fmt:
-        # очно-заочная тоже может быть частично онлайн
+
         if 'заочн' in fmt:
             return True
         return False
@@ -171,7 +158,6 @@ def _detect_online(detail: dict) -> bool | None:
     if 'онлайн' in desc or 'дистанционн' in desc:
         return True
     return None
-
 
 def generate_id(name: str, url: str = None) -> str:
     """Генерирует уникальный id для записи."""
@@ -185,7 +171,6 @@ def generate_id(name: str, url: str = None) -> str:
         return slug
     return f'id_{abs(hash(name))}'
 
-
 def normalize(raw_items):
     """Нормализует список сырых олимпиад с деталями в единый формат."""
     normalized = []
@@ -195,7 +180,6 @@ def normalize(raw_items):
         url = item.get('url', '')
         base_id = generate_id(item.get('name', ''), url=url)
 
-        # Уникальность ID
         uid = base_id
         suffix = 1
         while uid in used_ids:
@@ -206,18 +190,15 @@ def normalize(raw_items):
         name = item.get('name', '')
         detail = item.get('detail') or {}
 
-        # ── Предметы ──────────────────────────────────────────────────
         subjects = _subjects_from_cache(detail.get('subjects') or [])
         if not subjects:
-            # Попробовать извлечь из названия/описания
+
             subjects = _subjects_from_text(name)
         if not subjects:
             subjects = _subjects_from_text(detail.get('description') or '')
 
-        # ── Этапы ─────────────────────────────────────────────────────
         stages = _parse_stages(detail.get('stages') or [])
 
-        # ── Тип ───────────────────────────────────────────────────────
         raw_type = (detail.get('type') or '').lower().strip()
         if 'конкурс' in raw_type:
             etype = 'конкурс'
@@ -226,7 +207,7 @@ def normalize(raw_items):
         elif 'турнир' in raw_type:
             etype = 'турнир'
         else:
-            # Fallback: угадать из названия
+
             n = name.lower()
             if 'конкурс' in n:
                 etype = 'конкурс'
@@ -237,7 +218,6 @@ def normalize(raw_items):
             else:
                 etype = 'олимпиада'
 
-        # ── Уровень ───────────────────────────────────────────────────
         level = detail.get('level')
         if isinstance(level, str):
             try:
@@ -247,7 +227,6 @@ def normalize(raw_items):
         if not isinstance(level, int):
             level = None
 
-        # ── Сложность (из уровня РСОШ) ────────────────────────────────
         if level == 1:
             difficulty = 'высокий'
         elif level == 2:
@@ -257,14 +236,12 @@ def normalize(raw_items):
         else:
             difficulty = None
 
-        # ── Организатор ───────────────────────────────────────────────
         organizer = detail.get('organizer') or None
         if isinstance(organizer, list):
             organizer = ', '.join(organizer) if organizer else None
 
-        # ── Описание ──────────────────────────────────────────────────
         desc = detail.get('description') or None
-        # Если описание явно мусорное (только навигация) — сбрасываем
+
         if desc and len(desc) < 80 and ('олимпиад' in desc.lower() or 'новост' in desc.lower()):
             desc = None
 

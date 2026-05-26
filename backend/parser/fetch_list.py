@@ -10,12 +10,10 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0"
 }
 
-
 def fetch_page(url):
     r = requests.get(url, headers=HEADERS, timeout=15)
     r.raise_for_status()
     return r.text
-
 
 def parse_list_page(html):
     soup = BeautifulSoup(html, "html.parser")
@@ -37,18 +35,15 @@ def parse_list_page(html):
 
     return activities
 
-
 def fetch_all(max_pages=50):
-    # Попробуем сначала использовать AJAX-эндпоинт, который сайт использует для подгрузки
-    # (./include/activity/megalist.php). Он принимает те же параметры, что и форма фильтра,
-    # и параметр `cnow` — число уже загруженных элементов.
+
     all_items = []
     seen_urls = set()
 
     try:
         parsed = urlparse(LIST_URL)
         base_qs = parse_qs(parsed.query, keep_blank_values=True)
-        # Преобразуем значения: единичные списки -> строка
+
         params = {k: (v if len(v) > 1 else v[0]) for k, v in base_qs.items()}
 
         megalist_url = BASE_URL + '/include/activity/megalist.php'
@@ -83,16 +78,13 @@ def fetch_all(max_pages=50):
                 print('Новых данных нет — остановка (megalist).')
                 break
 
-            # Небольшая пауза, чтобы не перегружать сервер
             time.sleep(0.1)
 
-        # Если получили что-то — возвращаем
         if all_items:
             return all_items
     except Exception as e:
         print('megalist error, fall back to page-by-page:', e)
 
-    # Если megalist не сработал — падаем обратно на старую логику с параметром &page=
     page = 1
     while page <= max_pages:
         url = LIST_URL + f"&page={page}"
@@ -106,7 +98,6 @@ def fetch_all(max_pages=50):
 
         items = parse_list_page(html)
 
-        # Считаем только новые
         new_count = 0
 
         for item in items:
@@ -117,7 +108,6 @@ def fetch_all(max_pages=50):
 
         print(f"Новых на странице: {new_count}")
 
-        # Если новых больше нет — выходим
         if new_count == 0:
             print("Новых данных нет — остановка.")
             break
