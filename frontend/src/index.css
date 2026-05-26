@@ -92,12 +92,18 @@ a {
 .entry-hero,
 .form-frame,
 .dashboard-hero,
-.dashboard-panel,
 .calendar-sidecard,
-.calendar-month,
 .olympiad-card {
   position: relative;
   overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+/* Отдельно — overflow: clip позволяет вложенным элементам скроллиться */
+.dashboard-panel,
+.calendar-month {
+  position: relative;
+  overflow: clip;
   border: 1px solid var(--line);
   box-shadow: var(--shadow);
 }
