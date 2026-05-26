@@ -275,7 +275,13 @@ a {
   text-transform: uppercase;
 }
 
-.entry-hero h1,
+.entry-hero h1 {
+  margin: 12px 0 0;
+  font-size: clamp(2.8rem, 6vw, 5rem);
+  line-height: 0.92;
+  letter-spacing: -0.05em;
+}
+
 .dashboard-hero h1 {
   margin: 12px 0 0;
   font-size: clamp(2.8rem, 6vw, 5rem);
