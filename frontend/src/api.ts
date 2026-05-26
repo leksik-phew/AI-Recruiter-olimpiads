@@ -1,7 +1,8 @@
 import axios from 'axios';
 import type { StudentProfile, RecommendResponse, MetaData } from './types';
 
-const api = axios.create({ baseURL: '/api' });
+const BASE = import.meta.env.VITE_API_URL ?? '';
+const api = axios.create({ baseURL: `${BASE}/api` });
 
 export const getMeta = (): Promise<MetaData> =>
   api.get('/meta').then(r => r.data);
